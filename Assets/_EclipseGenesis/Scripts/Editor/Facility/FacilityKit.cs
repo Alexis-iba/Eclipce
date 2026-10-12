@@ -14,12 +14,16 @@ namespace EclipseGenesis.EditorTools.Facility
     public readonly struct Opening
     {
         public readonly Side Side;
-        public readonly float Center, Width, Height;
+        public readonly float Center, Width, Height, Bottom;
 
-        public Opening(Side side, float center, float width = 2.6f, float height = 2.9f)
+        /// <param name="bottom">Sill height: 0 for doorways, &gt; 0 for windows.</param>
+        public Opening(Side side, float center, float width = 2.6f, float height = 2.9f, float bottom = 0f)
         {
-            Side = side; Center = center; Width = width; Height = height;
+            Side = side; Center = center; Width = width; Height = height; Bottom = bottom;
         }
+
+        public static Opening Window(Side side, float center, float width = 1.4f, float sill = 0.9f, float top = 2.1f) =>
+            new Opening(side, center, width, top, sill);
     }
 
     /// <summary>Axis-aligned room footprint (x0..x1, z0..z1) and ceiling height.</summary>
@@ -159,6 +163,7 @@ namespace EclipseGenesis.EditorTools.Facility
                 float a = o.Center - o.Width * 0.5f, b = o.Center + o.Width * 0.5f;
                 WallSegment(parent, side, alongX, fixedCoord, inward, cursor, a, 0f, r.Height, upper, lower, true);
                 WallSegment(parent, side, alongX, fixedCoord, inward, a, b, o.Height, r.Height, upper, lower, false);
+                if (o.Bottom > 0f) WallSegment(parent, side, alongX, fixedCoord, inward, a, b, 0f, o.Bottom, upper, lower, true);
                 cursor = b;
             }
             WallSegment(parent, side, alongX, fixedCoord, inward, cursor, end, 0f, r.Height, upper, lower, true);
@@ -191,7 +196,7 @@ namespace EclipseGenesis.EditorTools.Facility
                 Box(parent, n, c, s, m, collide);
             }
             Trim("Baseboard", 0.07f, 0.14f, 0.05f, M.Rubber, true);
-            Trim("Trim_Mid", LowerWallHeight, 0.06f, 0.035f, M.SteelTrim, false);
+            if (y1 > LowerWallHeight + 0.05f) Trim("Trim_Mid", LowerWallHeight, 0.06f, 0.035f, M.SteelTrim, false);
         }
 
         /// <summary>Emissive strip on an inner wall face (corridor light lines).</summary>

@@ -12,16 +12,19 @@ namespace EclipseGenesis.EditorTools.Facility
     public sealed class MeshKit
     {
         public const string LibraryPath = "Assets/_EclipseGenesis/Art/Generated/FacilityMeshes.asset";
+        private readonly string _libraryPath;
 
         private readonly Dictionary<string, Mesh> _cache = new Dictionary<string, Mesh>();
         private readonly Mesh _library;
 
-        public MeshKit()
+        /// <param name="libraryPath">Each generated scene owns its own mesh library so rebuilding one scene never breaks another.</param>
+        public MeshKit(string libraryPath = LibraryPath)
         {
-            AssetDatabase.DeleteAsset(LibraryPath);
-            FpsTestSceneBuilder.EnsureFolder(System.IO.Path.GetDirectoryName(LibraryPath));
-            _library = new Mesh { name = "FacilityMeshes" };
-            AssetDatabase.CreateAsset(_library, LibraryPath);
+            _libraryPath = libraryPath;
+            AssetDatabase.DeleteAsset(_libraryPath);
+            FpsTestSceneBuilder.EnsureFolder(System.IO.Path.GetDirectoryName(_libraryPath));
+            _library = new Mesh { name = System.IO.Path.GetFileNameWithoutExtension(_libraryPath) };
+            AssetDatabase.CreateAsset(_library, _libraryPath);
         }
 
         public int Count => _cache.Count;
@@ -108,6 +111,17 @@ namespace EclipseGenesis.EditorTools.Facility
             }
 
             return Store(key, m, v, n, uv, t);
+        }
+
+        /// <summary>Stores an externally generated mesh (rocks, organic shapes) in this library, cached by key.</summary>
+        public Mesh Register(string key, System.Func<Mesh> make)
+        {
+            if (_cache.TryGetValue(key, out var existing)) return existing;
+            var m = make();
+            m.name = key;
+            AssetDatabase.AddObjectToAsset(m, _library);
+            _cache[key] = m;
+            return m;
         }
 
         private Mesh Store(string key, Mesh m, List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)

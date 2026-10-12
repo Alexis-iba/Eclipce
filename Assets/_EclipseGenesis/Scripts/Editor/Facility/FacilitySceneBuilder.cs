@@ -60,18 +60,7 @@ namespace EclipseGenesis.EditorTools.Facility
             var kit = new FacilityKit(materials, meshes, smoke);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            var world = new GameObject("Facility").transform;
-
-            BuildAccessCorridor(kit, world);
-            BuildArmory(kit, world);
-            BuildMilitaryCorridor(kit, world);
-            BuildCentralLab(kit, world);
-            BuildExperimentRoom(kit, world);
-            BuildCombatZone(kit, world);
-            BuildExitCorridor(kit, world);
-            BuildGlobalAmbience(kit, world);
-
-            MarkStatic(world);
+            var world = BuildWorld(kit, openZoneEntrance: false);
             BuildVolume();
             BuildNavigation(world);
             BuildQaMarkers();
@@ -85,6 +74,35 @@ namespace EclipseGenesis.EditorTools.Facility
             Debug.Log($"[EclipseGenesis] Built {ScenePath}: {kit.AllLights.Count} lights ({kit.ShadowedLights.Count} with shadows), {meshes.Count} meshes");
         }
 
+        /// <summary>
+        /// Builds all facility rooms into the open scene. With <paramref name="openZoneEntrance"/> the sealed blast door at the
+        /// south end becomes the unlocked main entrance from the outdoor map (Eclipse_OpenZone).
+        /// </summary>
+        public static Transform BuildWorld(FacilityKit kit, bool openZoneEntrance)
+        {
+            s_openZoneEntrance = openZoneEntrance;
+            var world = new GameObject("Facility").transform;
+            BuildAccessCorridor(kit, world);
+            BuildArmory(kit, world);
+            BuildMilitaryCorridor(kit, world);
+            BuildCentralLab(kit, world);
+            BuildExperimentRoom(kit, world);
+            BuildCombatZone(kit, world);
+            BuildExitCorridor(kit, world);
+            BuildGlobalAmbience(kit, world);
+            MarkStatic(world);
+            s_openZoneEntrance = false;
+            return world;
+        }
+
+        private static bool s_openZoneEntrance;
+
+        public static FacilityKit CreateKit(string meshLibraryPath = MeshKit.LibraryPath)
+        {
+            EnableScreenSpaceReflections();
+            return new FacilityKit(new FacilityMaterials(), new MeshKit(meshLibraryPath), ProceduralTextures.SmokeNoise3D(SmokeMaskPath));
+        }
+
         // ------------------------------------------------------------------ zones
 
         private static void BuildAccessCorridor(FacilityKit k, Transform world)
@@ -95,7 +113,10 @@ namespace EclipseGenesis.EditorTools.Facility
             var props = FacilityKit.Group(room, "Props");
             var lights = FacilityKit.Group(room, "Lighting");
 
-            k.Door(room, "Door_BlastSealed", new Vector3(0f, 0f, r.Z0 - 0.15f), 0f, locked: true, depth: 0.3f);
+            if (s_openZoneEntrance)
+                k.Door(room, "Door_GenesisEntrance", new Vector3(0f, 0f, r.Z0 - 0.15f), 0f, locked: false, depth: 0.3f);
+            else
+                k.Door(room, "Door_BlastSealed", new Vector3(0f, 0f, r.Z0 - 0.15f), 0f, locked: true, depth: 0.3f);
             k.Door(room, "Door_ToArmory", new Vector3(0f, 0f, r.Z1), 0f, locked: false);
 
             foreach (float z in new[] { 2.5f, 6.5f, 10.5f, 14f })
@@ -490,7 +511,7 @@ namespace EclipseGenesis.EditorTools.Facility
 
         // ------------------------------------------------------------------ scene services
 
-        private static void MarkStatic(Transform world)
+        public static void MarkStatic(Transform world)
         {
             foreach (var t in world.GetComponentsInChildren<Transform>(true))
             {
@@ -509,7 +530,7 @@ namespace EclipseGenesis.EditorTools.Facility
             return false;
         }
 
-        private static void BuildVolume()
+        public static Volume BuildVolume()
         {
             FpsTestSceneBuilder.EnsureFolder(Path.GetDirectoryName(VolumeProfilePath));
             AssetDatabase.DeleteAsset(VolumeProfilePath);
@@ -581,6 +602,7 @@ namespace EclipseGenesis.EditorTools.Facility
             volume.isGlobal = true;
             volume.priority = 1f;
             volume.sharedProfile = profile;
+            return volume;
         }
 
         private static void BuildNavigation(Transform world)

@@ -1,0 +1,597 @@
+using System.Collections.Generic;
+using EclipseGenesis.EditorTools.Facility;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace EclipseGenesis.EditorTools.OpenZone
+{
+    /// <summary>
+    /// Provisional outdoor kit for Eclipse_OpenZone (houses with interiors, outpost fortifications, vehicles,
+    /// street furniture, dead vegetation, rocks and alien structures). Built from the facility kit's metre-UV boxes
+    /// and cylinders plus procedural rock meshes. All of it is placeholder geometry listed in ASSETS_REQUIRED.md.
+    /// </summary>
+    public sealed class OpenZoneProps
+    {
+        public readonly FacilityKit K;
+        public readonly Material Plaster, PlasterDark, Asphalt, RoadLine, Roofing, Sand, Bark, Rock, ShrubMaterial, Burnt, Rust, Canvas, Brass, AlienShell, AlienGlow, Concrete;
+        private readonly System.Random _rng;
+
+        public OpenZoneProps(FacilityKit kit, int seed)
+        {
+            K = kit;
+            _rng = new System.Random(seed);
+            var plaster = ProceduralTextures.Get("Plaster");
+            var concrete = ProceduralTextures.Get("Concrete");
+            var metal = ProceduralTextures.Get("MetalPanel");
+            var dirt = ProceduralTextures.Get("GroundDirt");
+            var rock = ProceduralTextures.Get("GroundRock");
+            Plaster = FacilityMaterials.Lit("M_OZ_Plaster", plaster, new Color(0.78f, 0.74f, 0.66f), 3f, (0f, 0.25f), 0f);
+            PlasterDark = FacilityMaterials.Lit("M_OZ_PlasterDark", plaster, new Color(0.42f, 0.4f, 0.37f), 3f, (0f, 0.25f), 0f);
+            Concrete = FacilityMaterials.Lit("M_OZ_Concrete", concrete, new Color(0.55f, 0.54f, 0.52f), 4f, (0.05f, 0.45f), 0f);
+            Asphalt = FacilityMaterials.Lit("M_OZ_Asphalt", ProceduralTextures.Get("Asphalt"), Color.white, 6f, (0.1f, 0.5f), 0f);
+            Roofing = FacilityMaterials.Lit("M_OZ_Roofing", ProceduralTextures.Get("Asphalt"), new Color(0.5f, 0.48f, 0.46f), 3f, (0.05f, 0.35f), 0f);
+            Sand = FacilityMaterials.Lit("M_OZ_HescoSand", dirt, new Color(0.95f, 0.88f, 0.75f), 2f, (0f, 0.2f), 0f);
+            Bark = FacilityMaterials.Lit("M_OZ_BurntBark", ProceduralTextures.Get("Bark"), Color.white, 1f, (0f, 0.25f), 0f);
+            Rock = FacilityMaterials.Lit("M_OZ_Rock", rock, new Color(0.95f, 0.95f, 0.95f), 4f, (0.1f, 0.45f), 0f);
+            ShrubMaterial = FacilityMaterials.Lit("M_OZ_Shrub", ProceduralTextures.Get("GroundGrass"), new Color(0.75f, 0.8f, 0.65f), 1.5f, (0f, 0.25f), 0f);
+            Burnt = FacilityMaterials.Lit("M_OZ_BurntMetal", metal, new Color(0.09f, 0.08f, 0.075f), 2f, (0.05f, 0.35f), 0.3f);
+            Rust = FacilityMaterials.Lit("M_OZ_RustMetal", metal, new Color(0.36f, 0.2f, 0.12f), 2f, (0.05f, 0.4f), 0.25f);
+            Canvas = FacilityMaterials.Lit("M_OZ_Canvas", plaster, new Color(0.36f, 0.36f, 0.27f), 2f, (0f, 0.2f), 0f);
+            AlienShell = FacilityMaterials.Lit("M_OZ_AlienShell", ProceduralTextures.Get("AlienFlesh"), new Color(0.55f, 0.5f, 0.6f), 3f, (0.4f, 0.9f), 0.2f);
+            AlienGlow = FacilityMaterials.Glow("M_OZ_AlienGlow", new Color(0.55f, 0.2f, 1f), 900f);
+            RoadLine = FacilityMaterials.Glow("M_OZ_RoadLine", new Color(0.8f, 0.78f, 0.7f), 0.5f, 0.3f);
+        }
+
+        public float R(float min, float max) => min + (float)_rng.NextDouble() * (max - min);
+        public bool Chance(float p) => _rng.NextDouble() < p;
+
+        private static Transform G(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            var t = FacilityKit.Group(parent, name);
+            t.localPosition = pos;
+            t.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            return t;
+        }
+
+        // ------------------------------------------------------------------ buildings
+
+        /// <summary>Single-storey house with door, windows, two rooms, furniture and a flat roof with parapet.</summary>
+        public Transform House(Transform parent, string name, Vector3 pos, float yaw, float w, float d, bool damaged, bool lit)
+        {
+            var g = G(parent, name, pos, yaw);
+            const float h = 3.1f;
+            var rect = new RoomRect(-w * 0.5f, w * 0.5f, -d * 0.5f, d * 0.5f, h);
+            var openings = new List<Opening>
+            {
+                new Opening(Side.South, 0f, 1.3f, 2.25f),
+                Opening.Window(Side.South, -w * 0.3f), Opening.Window(Side.South, w * 0.3f),
+                Opening.Window(Side.North, -w * 0.25f), Opening.Window(Side.North, w * 0.25f),
+                Opening.Window(Side.East, d * 0.2f), Opening.Window(Side.West, -d * 0.2f),
+            };
+            if (damaged) openings.Add(new Opening(Side.East, -d * 0.22f, 2.6f, 2.6f, 0.35f));
+            var room = K.Room(g, "Shell", rect, K.M.FloorConcrete, Plaster, PlasterDark, Plaster, openings.ToArray());
+
+            Partition(room, rect, 0.1f * d, -w * 0.25f);
+            Parapet(g, rect, h);
+            WindowFrames(g, rect, openings);
+            Furnish(room, rect, damaged);
+            if (damaged)
+            {
+                Rubble(g, new Vector3(w * 0.5f + 1.2f, 0f, -d * 0.22f), 1.4f);
+                K.Decal(g, K.M.DecalScorch, new Vector3(w * 0.5f + 0.2f, 1.6f, -d * 0.22f), Vector3.right, 3f, R(0f, 360f));
+            }
+            if (lit)
+            {
+                var l = K.Point(g, "InteriorLight", new Vector3(-w * 0.2f, h - 0.4f, -d * 0.2f), 700f, 7f, new Color(1f, 0.78f, 0.55f));
+                if (Chance(0.5f))
+                {
+                    var f = l.gameObject.AddComponent<EclipseGenesis.World.FlickerLight>();
+                    FacilityKit.SetRef(f, "targetLight", l);
+                    FacilityKit.SetFloat(f, "baseIntensity", l.intensity);
+                }
+            }
+            return g;
+        }
+
+        /// <summary>Two-storey command post with exterior stairs to the upper floor and the roof (elevated firing point).</summary>
+        public Transform CommandPost(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            var g = G(parent, name, pos, yaw);
+            const float w = 10f, d = 12f, h = 3.2f;
+            var ground = new RoomRect(-w / 2, w / 2, -d / 2, d / 2, h);
+            K.Room(g, "Ground", ground, K.M.FloorConcrete, Plaster, PlasterDark, Plaster,
+                new Opening(Side.South, -2f, 1.4f, 2.3f), Opening.Window(Side.South, 2.2f), Opening.Window(Side.North, -2.5f), Opening.Window(Side.North, 2.5f),
+                Opening.Window(Side.West, 0f, 1.8f));
+            var upperRoot = FacilityKit.Group(g, "UpperFloor");
+            upperRoot.localPosition = new Vector3(0f, h + 0.22f, 0f);
+            var upper = K.Room(upperRoot, "Upper", ground, K.M.FloorPlate, Plaster, PlasterDark, Plaster,
+                new Opening(Side.East, -1.2f, 1.2f, 2.2f), Opening.Window(Side.South, -2.5f, 2f), Opening.Window(Side.South, 2.5f, 2f),
+                Opening.Window(Side.North, 0f, 2.4f), Opening.Window(Side.West, -2f), Opening.Window(Side.West, 2.5f));
+            Furnish(FacilityKit.Group(g, "GroundProps"), ground, false);
+            Furnish(FacilityKit.Group(upperRoot, "UpperProps"), ground, false);
+            float roofY = 2f * h + 0.44f;
+            Parapet(g, ground, roofY - 0.2f, gapEast: true);
+
+            // Exterior stairs on the east side: ground → upper door → roof.
+            float sx = w / 2 + 0.95f;
+            Stairs(g, new Vector3(sx, 0f, -5.6f), 1.4f, 0f, h + 0.22f, +1f);
+            K.Box(g, "Landing", new Vector3(sx, h + 0.12f, -1.2f), new Vector3(1.6f, 0.2f, 1.6f), K.M.FloorPlate);
+            Stairs(g, new Vector3(sx, h + 0.22f, -0.4f), 1.4f, h + 0.22f, roofY + 0.2f, +1f);
+            K.Box(g, "RoofBridge", new Vector3(w / 2 + 0.45f, roofY + 0.1f, 4.4f), new Vector3(1.8f, 0.2f, 1.6f), K.M.FloorPlate);
+
+            // Rooftop overwatch.
+            for (int i = 0; i < 4; i++) Sandbags(g, new Vector3(-3f + i * 2f, roofY + 0.2f, d / 2 - 0.9f), 0f, 1.8f);
+            K.Box(g, "RoofTank", new Vector3(-3f, roofY + 0.9f, -3.5f), new Vector3(1.6f, 1.4f, 1.6f), Rust);
+            return g;
+        }
+
+        /// <summary>Large storage shed with a roller-door opening and high windows.</summary>
+        public Transform Warehouse(Transform parent, string name, Vector3 pos, float yaw)
+        {
+            var g = G(parent, name, pos, yaw);
+            var rect = new RoomRect(-8f, 8f, -6f, 6f, 5.2f);
+            K.Room(g, "Shell", rect, K.M.FloorConcrete, K.M.WallUpper, K.Concrete(), K.M.Ceiling,
+                new Opening(Side.South, -3f, 4.2f, 3.8f), new Opening(Side.North, 5f, 1.3f, 2.3f),
+                Opening.Window(Side.East, 0f, 3f, 3.2f, 4.4f), Opening.Window(Side.West, 0f, 3f, 3.2f, 4.4f));
+            K.Box(g, "RollerDoor", new Vector3(-3f, 4.25f, -6.15f), new Vector3(4.4f, 0.9f, 0.12f), Rust, collider: false);
+            for (int i = 0; i < 3; i++)
+            {
+                var rack = FacilityKit.Group(g, "Rack");
+                rack.localPosition = new Vector3(3.5f, 0f, -3.5f + i * 3.2f);
+                for (int s = 0; s < 3; s++) K.Box(rack, "Shelf", new Vector3(0f, 0.4f + s * 1.1f, 0f), new Vector3(4f, 0.06f, 1.1f), K.M.SteelTrim, collider: s == 0);
+                foreach (float x in new[] { -1.95f, 1.95f })
+                    K.Box(rack, "Post", new Vector3(x, 1.5f, 0f), new Vector3(0.08f, 3f, 1.1f), K.M.Graphite_);
+                for (int c = 0; c < 3; c++) if (Chance(0.7f)) K.Crate(rack, new Vector3(-1.2f + c * 1.2f, 0.43f, 0f), 0.75f, R(-10f, 10f));
+            }
+            K.Container(g, new Vector3(-4.5f, 0f, 3f), 90f, Rust);
+            Barrel(g, new Vector3(-6.5f, 0f, -4f));
+            Barrel(g, new Vector3(-6.2f, 0f, -3.1f));
+            K.Point(g, "Lamp", new Vector3(0f, 4.6f, 0f), 900f, 12f, new Color(1f, 0.85f, 0.65f));
+            return g;
+        }
+
+        /// <summary>Roofless ruin: broken walls, rubble and burnt beams.</summary>
+        public Transform Ruin(Transform parent, string name, Vector3 pos, float yaw, float w, float d)
+        {
+            var g = G(parent, name, pos, yaw);
+            var shell = FacilityKit.Group(g, "Walls");
+            float t = 0.3f;
+            K.Box(shell, "Wall_S_A", new Vector3(-w * 0.3f, 1.1f, -d / 2), new Vector3(w * 0.4f, 2.2f, t), Plaster);
+            K.Box(shell, "Wall_S_B", new Vector3(w * 0.38f, 0.7f, -d / 2), new Vector3(w * 0.24f, 1.4f, t), Plaster);
+            K.Box(shell, "Wall_W", new Vector3(-w / 2, 1.4f, 0f), new Vector3(t, 2.8f, d), Plaster);
+            K.Box(shell, "Wall_N_A", new Vector3(-w * 0.15f, 2.3f, d / 2), new Vector3(w * 0.7f, 2.6f, t), Plaster);
+            K.Box(shell, "Wall_E", new Vector3(w / 2, 0.6f, d * 0.2f), new Vector3(t, 1.2f, d * 0.6f), Plaster);
+            K.Box(g, "Floor", new Vector3(0f, -0.1f, 0f), new Vector3(w, 0.2f, d), K.M.FloorConcrete);
+            for (int i = 0; i < 3; i++)
+            {
+                var beam = K.Box(g, "BurntBeam", new Vector3(R(-w * 0.3f, w * 0.3f), 0.3f, R(-d * 0.3f, d * 0.3f)), new Vector3(0.2f, 0.2f, R(2.5f, 4f)), Bark, yaw: R(0f, 180f));
+                beam.transform.localRotation *= Quaternion.Euler(R(-15f, 15f), 0f, R(-10f, 10f));
+            }
+            Rubble(g, new Vector3(w * 0.2f, 0f, -d * 0.1f), 2f);
+            K.Decal(g, K.M.DecalScorch, new Vector3(0f, 0f, 0f), Vector3.up, Mathf.Min(w, d), R(0f, 360f));
+            return g;
+        }
+
+        private void Partition(Transform room, RoomRect r, float z, float doorX)
+        {
+            float t = 0.15f, h = r.Height, door = 1.0f;
+            float left = r.X0, right = r.X1;
+            K.Box(room, "Partition_A", new Vector3((left + doorX - door / 2) / 2, h / 2, z), new Vector3(doorX - door / 2 - left, h, t), Plaster);
+            K.Box(room, "Partition_B", new Vector3((doorX + door / 2 + right) / 2, h / 2, z), new Vector3(right - doorX - door / 2, h, t), Plaster);
+            K.Box(room, "Partition_Lintel", new Vector3(doorX, (2.15f + h) / 2, z), new Vector3(door, h - 2.15f, t), Plaster);
+        }
+
+        private void Parapet(Transform g, RoomRect r, float roofTop, bool gapEast = false)
+        {
+            float y = roofTop + 0.2f + 0.3f, t = 0.2f, ex = 0.3f;
+            K.Box(g, "Roofing", new Vector3(0f, roofTop + 0.205f, 0f), new Vector3(r.X1 - r.X0 + 2 * ex, 0.01f, r.Z1 - r.Z0 + 2 * ex), Roofing, collider: false);
+            K.Box(g, "Parapet_N", new Vector3(0f, y, r.Z1 + ex - t / 2), new Vector3(r.X1 - r.X0 + 2 * ex, 0.6f, t), Plaster);
+            K.Box(g, "Parapet_S", new Vector3(0f, y, r.Z0 - ex + t / 2), new Vector3(r.X1 - r.X0 + 2 * ex, 0.6f, t), Plaster);
+            K.Box(g, "Parapet_W", new Vector3(r.X0 - ex + t / 2, y, 0f), new Vector3(t, 0.6f, r.Z1 - r.Z0 + 2 * ex), Plaster);
+            if (gapEast)
+            {
+                float zLen = r.Z1 - r.Z0 + 2 * ex;
+                K.Box(g, "Parapet_E", new Vector3(r.X1 + ex - t / 2, y, -1.2f), new Vector3(t, 0.6f, zLen - 2.4f - 1.4f), Plaster);
+            }
+            else K.Box(g, "Parapet_E", new Vector3(r.X1 + ex - t / 2, y, 0f), new Vector3(t, 0.6f, r.Z1 - r.Z0 + 2 * ex), Plaster);
+        }
+
+        private void WindowFrames(Transform g, RoomRect r, List<Opening> openings)
+        {
+            foreach (var o in openings)
+            {
+                if (o.Bottom <= 0f) continue;
+                bool alongX = o.Side == Side.North || o.Side == Side.South;
+                float face = o.Side switch { Side.North => r.Z1 + 0.3f, Side.South => r.Z0 - 0.3f, Side.East => r.X1 + 0.3f, _ => r.X0 - 0.3f };
+                Vector3 c = alongX ? new Vector3(o.Center, 0f, face) : new Vector3(face, 0f, o.Center);
+                Vector3 sill = alongX ? new Vector3(o.Width + 0.2f, 0.08f, 0.12f) : new Vector3(0.12f, 0.08f, o.Width + 0.2f);
+                K.Box(g, "Sill", c + Vector3.up * (o.Bottom - 0.02f), sill, K.M.SteelTrim, collider: false);
+                // Boarded-up look on some windows.
+                if (Chance(0.35f))
+                {
+                    for (int b = 0; b < 2; b++)
+                    {
+                        Vector3 board = alongX ? new Vector3(o.Width + 0.3f, 0.18f, 0.04f) : new Vector3(0.04f, 0.18f, o.Width + 0.3f);
+                        var bo = K.Box(g, "Board", c + Vector3.up * (o.Bottom + 0.35f + b * 0.55f), board, Bark, collider: false);
+                        bo.transform.localRotation *= alongX ? Quaternion.Euler(0f, 0f, R(-12f, 12f)) : Quaternion.Euler(R(-12f, 12f), 0f, 0f);
+                    }
+                }
+            }
+        }
+
+        private void Furnish(Transform room, RoomRect r, bool damaged)
+        {
+            float w = r.X1 - r.X0, d = r.Z1 - r.Z0;
+            // Bed / cot.
+            if (Chance(0.7f))
+            {
+                var bed = G(room, "Bed", new Vector3(r.X1 - 1.2f, 0f, r.Z1 - 1.3f), 90f);
+                K.Box(bed, "Frame", new Vector3(0f, 0.25f, 0f), new Vector3(2f, 0.5f, 0.95f), K.M.Graphite_);
+                K.Box(bed, "Mattress", new Vector3(0f, 0.55f, 0f), new Vector3(1.9f, 0.12f, 0.88f), Canvas, collider: false);
+            }
+            // Table and chairs.
+            var table = G(room, "Table", new Vector3(r.X0 + w * 0.3f, 0f, r.Z0 + d * 0.3f), R(-15f, 15f));
+            K.Box(table, "Top", new Vector3(0f, 0.76f, 0f), new Vector3(1.4f, 0.05f, 0.8f), Bark);
+            foreach (var p in new[] { new Vector3(-0.62f, 0f, -0.33f), new Vector3(0.62f, 0f, -0.33f), new Vector3(-0.62f, 0f, 0.33f), new Vector3(0.62f, 0f, 0.33f) })
+                K.Box(table, "Leg", p + Vector3.up * 0.37f, new Vector3(0.06f, 0.74f, 0.06f), Bark, collider: false);
+            for (int i = 0; i < 2; i++)
+            {
+                var chair = G(table, "Chair", new Vector3(i == 0 ? -0.4f : 0.5f, 0f, i == 0 ? -0.75f : 0.8f), R(0f, 360f));
+                bool tipped = damaged && i == 1;
+                if (tipped) chair.localRotation *= Quaternion.Euler(90f, 0f, 0f);
+                K.Box(chair, "Seat", new Vector3(0f, 0.45f, 0f), new Vector3(0.45f, 0.05f, 0.45f), Bark, collider: !tipped);
+                K.Box(chair, "Back", new Vector3(0f, 0.75f, -0.21f), new Vector3(0.45f, 0.6f, 0.04f), Bark, collider: false);
+            }
+            // Shelf / locker against a wall.
+            K.Box(room, "Shelf", new Vector3(r.X0 + 0.25f, 0.9f, r.Z1 - 1.5f), new Vector3(0.4f, 1.8f, 1.2f), Bark);
+            if (Chance(0.6f)) K.Crate(room, new Vector3(r.X1 - 0.8f, 0f, r.Z0 + 0.8f), 0.7f, R(0f, 40f));
+            if (damaged) Rubble(room, new Vector3(R(-w * 0.2f, w * 0.2f), 0f, R(-d * 0.2f, d * 0.2f)), 0.9f);
+        }
+
+        // ------------------------------------------------------------------ fortifications
+
+        /// <summary>HESCO-style defensive barrier line (wire-mesh frame filled with earth).</summary>
+        public void Hesco(Transform parent, Vector3 from, Vector3 to, float height = 1.4f)
+        {
+            Vector3 d = to - from;
+            int n = Mathf.Max(1, Mathf.RoundToInt(d.magnitude / 1.1f));
+            float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            var line = FacilityKit.Group(parent, "HescoLine");
+            for (int i = 0; i < n; i++)
+            {
+                Vector3 p = from + d * ((i + 0.5f) / n);
+                var c = G(line, "Hesco", p, yaw);
+                K.Box(c, "Fill", new Vector3(0f, height / 2, 0f), new Vector3(1.04f, height, 1.04f), Sand);
+                K.Box(c, "Mesh", new Vector3(0f, height / 2 + 0.01f, 0f), new Vector3(1.1f, height + 0.02f, 1.1f), K.M.Grating, collider: false);
+            }
+        }
+
+        public void Sandbags(Transform parent, Vector3 pos, float yaw, float length)
+        {
+            var g = G(parent, "Sandbags", pos, yaw);
+            int per = Mathf.Max(2, Mathf.RoundToInt(length / 0.55f));
+            for (int row = 0; row < 3; row++)
+            for (int i = 0; i < per - (row % 2); i++)
+            {
+                float x = -length / 2 + 0.28f + i * 0.55f + (row % 2) * 0.27f;
+                var bag = K.Cylinder(g, "Bag", new Vector3(x, 0.13f + row * 0.24f, 0f), 0.15f, 0.5f, Canvas, Quaternion.Euler(0f, 0f, 90f), collider: false);
+                bag.transform.localScale = new Vector3(1f, 1f, 1.7f);
+            }
+            var col = g.gameObject.AddComponent<BoxCollider>();
+            col.center = new Vector3(0f, 0.36f, 0f);
+            col.size = new Vector3(length, 0.72f, 0.5f);
+        }
+
+        public void Watchtower(Transform parent, Vector3 pos, float yaw)
+        {
+            var g = G(parent, "Watchtower", pos, yaw);
+            const float top = 4f;
+            foreach (var p in new[] { new Vector3(-1.4f, 0f, -1.4f), new Vector3(1.4f, 0f, -1.4f), new Vector3(-1.4f, 0f, 1.4f), new Vector3(1.4f, 0f, 1.4f) })
+                K.Box(g, "Leg", p + Vector3.up * top / 2, new Vector3(0.2f, top, 0.2f), K.M.Graphite_);
+            K.Box(g, "Deck", new Vector3(0f, top, 0f), new Vector3(3.2f, 0.2f, 3.2f), K.M.FloorPlate);
+            Railing(g, new Vector3(0f, top, 1.55f), 3.2f, 1f, alongX: true);
+            Railing(g, new Vector3(-1.55f, top, 0f), 3.2f, 1f);
+            Railing(g, new Vector3(1.55f, top, -1.1f), 1.0f, 1f);
+            for (int i = 0; i < 2; i++) Sandbags(g, new Vector3(-0.8f + i * 1.6f, top + 0.1f, 1.3f), 0f, 1.4f);
+            K.Box(g, "Roof", new Vector3(0f, top + 2.4f, 0f), new Vector3(3.4f, 0.1f, 3.4f), Rust);
+            foreach (var p in new[] { new Vector3(-1.5f, 0f, -1.5f), new Vector3(1.5f, 0f, -1.5f), new Vector3(-1.5f, 0f, 1.5f), new Vector3(1.5f, 0f, 1.5f) })
+                K.Box(g, "RoofPost", p + Vector3.up * (top + 1.2f), new Vector3(0.08f, 2.4f, 0.08f), K.M.Graphite_, collider: false);
+            Stairs(g, new Vector3(2.3f, 0f, -3.7f), 1f, 0f, top, +1f); // top step lands beside the open east edge of the deck
+            var lamp = K.SpotDown(g, "Searchlight", new Vector3(0f, top + 2.2f, 1.4f), 8000f, 50f, 40f, new Color(1f, 0.92f, 0.8f), shadows: true);
+            lamp.transform.localRotation = Quaternion.Euler(30f, 0f, 0f);
+        }
+
+        /// <summary>Straight flight of steps rising along local +Z (dir = +1) from <paramref name="start"/>.</summary>
+        public void Stairs(Transform parent, Vector3 start, float width, float y0, float y1, float dir)
+        {
+            float rise = y1 - y0;
+            int steps = Mathf.Max(2, Mathf.CeilToInt(rise / 0.24f));
+            float stepH = rise / steps, run = 0.3f;
+            var g = FacilityKit.Group(parent, "Stairs");
+            for (int i = 0; i < steps; i++)
+            {
+                float top = y0 + stepH * (i + 1);
+                K.Box(g, $"Step_{i}", new Vector3(start.x, top - stepH / 2f, start.z + dir * (i + 0.5f) * run), new Vector3(width, stepH, run), K.M.FloorPlate);
+            }
+            // Stringer underneath so the flight does not look floating.
+            float len = steps * run;
+            var s = K.Box(g, "Stringer", new Vector3(start.x, y0 + rise / 2f - 0.1f, start.z + dir * len / 2f), new Vector3(width * 0.9f, 0.1f, Mathf.Sqrt(len * len + rise * rise)), K.M.Graphite_, collider: false);
+            s.transform.localRotation = Quaternion.Euler(-Mathf.Atan2(rise, len) * Mathf.Rad2Deg * dir, 0f, 0f);
+        }
+
+        public void Railing(Transform parent, Vector3 center, float length, float height, bool alongX = false)
+        {
+            Vector3 size = alongX ? new Vector3(length, 0.05f, 0.05f) : new Vector3(0.05f, 0.05f, length);
+            K.Box(parent, "Rail", center + Vector3.up * height, size, K.M.SteelTrim, collider: true);
+            K.Box(parent, "RailMid", center + Vector3.up * (height * 0.5f), size, K.M.SteelTrim, collider: false);
+        }
+
+        public void Helipad(Transform parent, Vector3 pos)
+        {
+            var g = G(parent, "Helipad", pos, 0f);
+            K.Cylinder(g, "Pad", new Vector3(0f, 0.04f, 0f), 7f, 0.08f, Asphalt, Quaternion.identity, collider: true);
+            K.Box(g, "H_L", new Vector3(-1.2f, 0.085f, 0f), new Vector3(0.5f, 0.01f, 4f), RoadLine, collider: false);
+            K.Box(g, "H_R", new Vector3(1.2f, 0.085f, 0f), new Vector3(0.5f, 0.01f, 4f), RoadLine, collider: false);
+            K.Box(g, "H_M", new Vector3(0f, 0.085f, 0f), new Vector3(2f, 0.01f, 0.5f), RoadLine, collider: false);
+            for (int i = 0; i < 8; i++)
+            {
+                float a = i / 8f * Mathf.PI * 2f;
+                K.Cylinder(g, "EdgeLight", new Vector3(Mathf.Cos(a) * 6.6f, 0.12f, Mathf.Sin(a) * 6.6f), 0.08f, 0.1f, K.M.StatusBlue, Quaternion.identity, collider: false);
+            }
+        }
+
+        // ------------------------------------------------------------------ vehicles & street
+
+        public void Truck(Transform parent, Vector3 pos, float yaw, bool burnt)
+        {
+            var g = G(parent, burnt ? "Truck_Burnt" : "Truck_Military", pos, yaw);
+            var body = burnt ? Burnt : FacilityMaterials.Lit("M_OZ_MilitaryOlive", ProceduralTextures.Get("MetalPanel"), new Color(0.24f, 0.26f, 0.19f), 2f, (0.1f, 0.5f), 0.2f);
+            K.Box(g, "Chassis", new Vector3(0f, 0.9f, 0f), new Vector3(2.4f, 0.5f, 7f), K.M.Graphite_);
+            K.Box(g, "Cab", new Vector3(0f, 1.95f, 2.4f), new Vector3(2.4f, 1.7f, 2.2f), body);
+            K.Box(g, "Windshield", new Vector3(0f, 2.3f, 3.51f), new Vector3(2.1f, 0.7f, 0.02f), burnt ? Burnt : K.M.Graphite_, collider: false);
+            K.Box(g, "Bed", new Vector3(0f, 1.45f, -1.2f), new Vector3(2.4f, 0.6f, 4.4f), body);
+            if (!burnt) K.Box(g, "Cover", new Vector3(0f, 2.5f, -1.2f), new Vector3(2.45f, 1.6f, 4.4f), Canvas);
+            foreach (float z in new[] { 2.3f, -0.6f, -2.4f })
+            foreach (float x in new[] { -1.15f, 1.15f })
+                K.Cylinder(g, "Wheel", new Vector3(x, 0.55f, z), 0.55f, 0.4f, K.M.Rubber, Quaternion.Euler(0f, 0f, 90f), collider: false);
+            if (burnt) K.Decal(g, K.M.DecalScorch, new Vector3(0f, 0f, 0f), Vector3.up, 7f, R(0f, 360f));
+        }
+
+        public void Car(Transform parent, Vector3 pos, float yaw)
+        {
+            var g = G(parent, "Car_Burnt", pos, yaw);
+            g.localRotation *= Quaternion.Euler(R(-3f, 3f), 0f, R(-4f, 4f));
+            K.Box(g, "Body", new Vector3(0f, 0.7f, 0f), new Vector3(1.8f, 0.7f, 4.3f), Chance(0.5f) ? Burnt : Rust);
+            K.Box(g, "Cabin", new Vector3(0f, 1.35f, -0.2f), new Vector3(1.6f, 0.6f, 2.2f), Burnt);
+            foreach (float z in new[] { 1.35f, -1.35f })
+            foreach (float x in new[] { -0.85f, 0.85f })
+                K.Cylinder(g, "Rim", new Vector3(x, 0.34f, z), 0.34f, 0.22f, Rust, Quaternion.Euler(0f, 0f, 90f), collider: false);
+        }
+
+        public void Barrel(Transform parent, Vector3 pos)
+        {
+            K.Cylinder(parent, "Barrel", pos + Vector3.up * 0.45f, 0.3f, 0.9f, Chance(0.5f) ? Rust : K.M.PipeRed, Quaternion.identity);
+        }
+
+        public void PowerPole(Transform parent, Vector3 pos, float yaw, bool fallen = false)
+        {
+            var g = G(parent, "PowerPole", pos, yaw);
+            if (fallen) g.localRotation *= Quaternion.Euler(0f, 0f, 78f);
+            K.Cylinder(g, "Pole", new Vector3(0f, 4.5f, 0f), 0.14f, 9f, Bark, Quaternion.identity);
+            K.Box(g, "Crossbar", new Vector3(0f, 8.4f, 0f), new Vector3(2.2f, 0.12f, 0.12f), Bark, collider: false);
+            foreach (float x in new[] { -0.9f, 0f, 0.9f })
+                K.Cylinder(g, "Insulator", new Vector3(x, 8.55f, 0f), 0.04f, 0.18f, K.M.SteelTrim, Quaternion.identity, collider: false);
+        }
+
+        public void Wire(Transform parent, Vector3 a, Vector3 b)
+        {
+            Vector3 mid = (a + b) * 0.5f + Vector3.down * 0.6f;
+            K.Pipe(parent, a, mid, 0.012f, K.M.Rubber);
+            K.Pipe(parent, mid, b, 0.012f, K.M.Rubber);
+        }
+
+        public void StreetLamp(Transform parent, Vector3 pos, float yaw, bool working)
+        {
+            var g = G(parent, "StreetLamp", pos, yaw);
+            K.Cylinder(g, "Pole", new Vector3(0f, 3f, 0f), 0.07f, 6f, K.M.Graphite_, Quaternion.identity);
+            K.Box(g, "Arm", new Vector3(0f, 5.95f, 0.6f), new Vector3(0.08f, 0.08f, 1.2f), K.M.Graphite_, collider: false);
+            K.Box(g, "Head", new Vector3(0f, 5.85f, 1.15f), new Vector3(0.35f, 0.12f, 0.6f), working ? K.M.LightPanelWarm : K.M.Graphite_, collider: false);
+            if (working) K.SpotDown(g, "Light", new Vector3(0f, 5.75f, 1.15f), 3000f, 110f, 16f, new Color(1f, 0.8f, 0.55f), shadows: false);
+        }
+
+        public void ChainFence(Transform parent, Vector3 from, Vector3 to, float height = 2.2f)
+        {
+            Vector3 d = to - from;
+            float len = d.magnitude;
+            float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            var g = G(parent, "ChainFence", (from + to) * 0.5f, yaw);
+            K.Box(g, "Mesh", new Vector3(0f, height / 2, 0f), new Vector3(0.03f, height, len), K.M.Grating);
+            int posts = Mathf.Max(2, Mathf.CeilToInt(len / 3f) + 1);
+            for (int i = 0; i < posts; i++)
+                K.Cylinder(g, "Post", new Vector3(0f, height / 2, -len / 2 + i * len / (posts - 1)), 0.04f, height, K.M.SteelTrim, Quaternion.identity, collider: false);
+        }
+
+        public void LowWall(Transform parent, Vector3 from, Vector3 to, float height = 1.0f)
+        {
+            Vector3 d = to - from;
+            float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            var g = G(parent, "LowWall", (from + to) * 0.5f, yaw);
+            K.Box(g, "Wall", new Vector3(0f, height / 2, 0f), new Vector3(0.3f, height, d.magnitude), Concrete);
+        }
+
+        public void Rubble(Transform parent, Vector3 pos, float size)
+        {
+            var g = G(parent, "Rubble", pos, R(0f, 360f));
+            for (int i = 0; i < 7; i++)
+            {
+                var b = K.Box(g, "Chunk", new Vector3(R(-size, size) * 0.6f, R(0.05f, 0.25f) * size, R(-size, size) * 0.6f),
+                    new Vector3(R(0.3f, 0.9f), R(0.15f, 0.4f), R(0.3f, 0.8f)) * size, Chance(0.5f) ? Concrete : Plaster, collider: i < 3, yaw: R(0f, 180f));
+                b.transform.localRotation *= Quaternion.Euler(R(-25f, 25f), 0f, R(-25f, 25f));
+            }
+        }
+
+        // ------------------------------------------------------------------ nature
+
+        public void DeadTree(Transform parent, Vector3 pos)
+        {
+            var g = G(parent, "DeadTree", pos, R(0f, 360f));
+            float h = R(5f, 9f);
+            K.Cylinder(g, "Trunk", new Vector3(0f, h * 0.35f, 0f), R(0.16f, 0.24f), h * 0.7f, Bark, Quaternion.Euler(R(-4f, 4f), 0f, R(-4f, 4f)));
+            K.Cylinder(g, "TrunkTop", new Vector3(0f, h * 0.82f, 0f), 0.1f, h * 0.36f, Bark, Quaternion.Euler(R(-10f, 10f), 0f, R(-10f, 10f)), collider: false);
+            int branches = _rng.Next(3, 6);
+            for (int i = 0; i < branches; i++)
+            {
+                float y = h * R(0.45f, 0.85f);
+                Vector3 dir = Quaternion.Euler(R(-60f, -25f), R(0f, 360f), 0f) * Vector3.forward;
+                Vector3 a = new Vector3(0f, y, 0f);
+                K.Pipe(g, a, a + dir * R(1.2f, 2.6f), R(0.04f, 0.08f), Bark);
+            }
+        }
+
+        public void AddShrub(Transform parent, Vector3 pos)
+        {
+            var g = G(parent, "Shrub", pos, R(0f, 360f));
+            int n = _rng.Next(2, 4);
+            for (int i = 0; i < n; i++)
+            {
+                var m = K.Meshes.Register($"rock_soft_{_rng.Next(0, 4)}", () => RockMesh(_rng.Next(), 0.35f));
+                var go = new GameObject("Clump");
+                go.transform.SetParent(g, false);
+                go.transform.localPosition = new Vector3(R(-0.6f, 0.6f), R(0.1f, 0.3f), R(-0.6f, 0.6f));
+                go.transform.localScale = new Vector3(R(0.7f, 1.3f), R(0.45f, 0.8f), R(0.7f, 1.3f));
+                go.AddComponent<MeshFilter>().sharedMesh = m;
+                var mr = go.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = ShrubMaterial;
+                mr.shadowCastingMode = ShadowCastingMode.On;
+            }
+        }
+
+        public GameObject Boulder(Transform parent, Vector3 pos, float size)
+        {
+            var m = K.Meshes.Register($"rock_{_rng.Next(0, 6)}", () => RockMesh(_rng.Next(), 0.28f));
+            var go = new GameObject("Rock");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos + Vector3.down * size * 0.25f;
+            go.transform.localRotation = Quaternion.Euler(R(-10f, 10f), R(0f, 360f), R(-10f, 10f));
+            go.transform.localScale = new Vector3(R(0.8f, 1.4f), R(0.5f, 0.9f), R(0.8f, 1.3f)) * size;
+            go.AddComponent<MeshFilter>().sharedMesh = m;
+            go.AddComponent<MeshRenderer>().sharedMaterial = Rock;
+            go.AddComponent<MeshCollider>().sharedMesh = m;
+            return go;
+        }
+
+        /// <summary>Noise-displaced subdivided octahedron: a cheap, convincing boulder silhouette.</summary>
+        public static Mesh RockMesh(int seed, float roughness)
+        {
+            var verts = new List<Vector3> { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
+            var tris = new List<int> { 0, 4, 3, 0, 3, 5, 0, 5, 2, 0, 2, 4, 1, 3, 4, 1, 5, 3, 1, 2, 5, 1, 4, 2 };
+            var mid = new Dictionary<long, int>();
+            int Mid(int a, int b)
+            {
+                long key = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a;
+                if (mid.TryGetValue(key, out int i)) return i;
+                verts.Add(((verts[a] + verts[b]) * 0.5f).normalized);
+                mid[key] = verts.Count - 1;
+                return verts.Count - 1;
+            }
+            for (int s = 0; s < 3; s++)
+            {
+                var next = new List<int>();
+                for (int t = 0; t < tris.Count; t += 3)
+                {
+                    int a = tris[t], b = tris[t + 1], c = tris[t + 2];
+                    int ab = Mid(a, b), bc = Mid(b, c), ca = Mid(c, a);
+                    next.AddRange(new[] { a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca });
+                }
+                tris = next;
+            }
+            var rnd = new System.Random(seed);
+            float ox = (float)rnd.NextDouble() * 100f, oz = (float)rnd.NextDouble() * 100f;
+            var uv = new List<Vector2>();
+            for (int i = 0; i < verts.Count; i++)
+            {
+                Vector3 v = verts[i];
+                float n = Mathf.PerlinNoise(v.x * 1.7f + ox, v.z * 1.7f + oz + v.y) - 0.5f;
+                float facet = Mathf.Round(n * 4f) / 4f;
+                verts[i] = v * (1f + (n * 0.6f + facet * 0.4f) * roughness * 2f);
+                if (v.y < -0.3f) verts[i] = new Vector3(verts[i].x, verts[i].y * 0.4f, verts[i].z);
+                uv.Add(new Vector2(v.x + v.z, v.y) * 1.5f);
+            }
+            var m = new Mesh();
+            m.SetVertices(verts);
+            m.SetTriangles(tris, 0);
+            m.SetUVs(0, uv);
+            m.RecalculateNormals();
+            m.RecalculateTangents();
+            m.RecalculateBounds();
+            return m;
+        }
+
+        // ------------------------------------------------------------------ alien
+
+        public void AlienSpire(Transform parent, Vector3 pos, float height)
+        {
+            var g = G(parent, "AlienSpire", pos, R(0f, 360f));
+            int segs = 6;
+            Vector3 p = Vector3.zero;
+            float lean = R(-12f, 12f);
+            for (int i = 0; i < segs; i++)
+            {
+                float t = i / (float)segs;
+                float r = Mathf.Lerp(0.9f, 0.12f, t) * height / 9f;
+                Vector3 dir = Quaternion.Euler(lean * (1f + t), i * 25f, R(-8f, 8f)) * Vector3.up;
+                Vector3 next = p + dir * height / segs;
+                K.Pipe(g, p, next, r, AlienShell);
+                p = next;
+            }
+            ProtoKitSphere(g, p, Vector3.one * 0.35f * height / 9f, AlienGlow);
+            var c = g.gameObject.AddComponent<CapsuleCollider>();
+            c.radius = 0.6f * height / 9f;
+            c.height = height;
+            c.center = Vector3.up * height / 2;
+        }
+
+        public void Nest(Transform parent, Vector3 pos, int pods)
+        {
+            var g = G(parent, "AlienNest", pos, R(0f, 360f));
+            for (int i = 0; i < pods; i++)
+            {
+                Vector3 p = new Vector3(R(-2.2f, 2.2f), 0f, R(-2.2f, 2.2f));
+                float s = R(0.6f, 1.1f);
+                var pod = ProtoKitSphere(g, p + Vector3.up * s * 0.6f, new Vector3(s * 0.8f, s * 1.2f, s * 0.8f), AlienShell);
+                pod.AddComponent<SphereCollider>();
+                ProtoKitSphere(g, p + Vector3.up * s * 1.05f, new Vector3(s * 0.35f, s * 0.2f, s * 0.35f), AlienGlow);
+            }
+            for (int i = 0; i < 5; i++)
+                ProtoKitSphere(g, new Vector3(R(-3f, 3f), 0.05f, R(-3f, 3f)), new Vector3(R(1.5f, 3f), 0.25f, R(1.5f, 3f)), K.M.Alien);
+            K.Point(g, "NestGlow", new Vector3(0f, 1.2f, 0f), 900f, 9f, new Color(0.6f, 0.25f, 1f));
+        }
+
+        /// <summary>Crashed alien hull: a long ribbed organic shell half-buried in the crater.</summary>
+        public void CrashedHull(Transform parent, Vector3 pos, float yaw)
+        {
+            var g = G(parent, "AlienCrashHull", pos, yaw);
+            g.localRotation *= Quaternion.Euler(-14f, 0f, 9f);
+            for (int i = 0; i < 9; i++)
+            {
+                float t = i / 8f;
+                float r = Mathf.Lerp(3.2f, 1.2f, Mathf.Abs(t - 0.35f) * 1.6f);
+                var seg = ProtoKitSphere(g, new Vector3(0f, 0.6f, -12f + i * 3f), new Vector3(r * 2f, r * 1.4f, 3.6f), AlienShell);
+                seg.AddComponent<SphereCollider>();
+                // Ribs.
+                var rib = K.Cylinder(g, "Rib", new Vector3(0f, 0.6f, -12f + i * 3f + 1.4f), r * 1.04f, 0.35f, K.M.Alien, Quaternion.Euler(90f, 0f, 0f), collider: false);
+                rib.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.On;
+            }
+            for (int i = 0; i < 4; i++) ProtoKitSphere(g, new Vector3(R(-1.5f, 1.5f), 2.4f, -8f + i * 4.5f), new Vector3(0.6f, 0.15f, 1.4f), AlienGlow);
+            K.Point(g, "HullGlow", new Vector3(0f, 3.5f, 0f), 2500f, 18f, new Color(0.55f, 0.2f, 1f));
+        }
+
+        private static GameObject ProtoKitSphere(Transform parent, Vector3 pos, Vector3 size, Material mat) =>
+            EclipseGenesis.EditorTools.Combat.ProtoKit.Part(parent, "Organic", PrimitiveType.Sphere, pos, size, mat);
+    }
+
+    internal static class FacilityKitExtensions
+    {
+        public static Material Concrete(this FacilityKit kit) => kit.M.Concrete;
+    }
+}

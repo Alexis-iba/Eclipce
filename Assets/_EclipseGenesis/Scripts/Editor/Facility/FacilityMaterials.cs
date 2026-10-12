@@ -99,7 +99,7 @@ namespace EclipseGenesis.EditorTools.Facility
         }
 
         /// <param name="tileMeters">World size covered by one texture repeat (meshes carry UVs in metres).</param>
-        private static Material Lit(string name, ProceduralTextures.TextureSet set, Color tint, float tileMeters, (float min, float max) smooth, float metallicMax = 1f)
+        internal static Material Lit(string name, ProceduralTextures.TextureSet set, Color tint, float tileMeters, (float min, float max) smooth, float metallicMax = 1f)
         {
             var mat = LoadOrCreate(name, "HDRP/Lit");
             mat.SetColor("_BaseColor", tint);
@@ -118,7 +118,7 @@ namespace EclipseGenesis.EditorTools.Facility
             return mat;
         }
 
-        private static Material Emissive(string name, ProceduralTextures.TextureSet set, Color tint, float tileMeters, float nits, (float min, float max)? smooth = null)
+        internal static Material Emissive(string name, ProceduralTextures.TextureSet set, Color tint, float tileMeters, float nits, (float min, float max)? smooth = null)
         {
             var mat = Lit(name, set, tint, tileMeters, smooth ?? (0.6f, 0.95f));
             mat.SetTexture("_EmissiveColorMap", set.Emissive);
@@ -129,7 +129,7 @@ namespace EclipseGenesis.EditorTools.Facility
             return mat;
         }
 
-        private static Material Glow(string name, Color color, float nits, float smoothness = 0.6f)
+        internal static Material Glow(string name, Color color, float nits, float smoothness = 0.6f)
         {
             var mat = LoadOrCreate(name, "HDRP/Lit");
             mat.SetColor("_BaseColor", color * 0.25f);

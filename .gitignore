@@ -36,3 +36,7 @@ crashlytics-buildid.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Blender autosave/backup files
+*.blend1
+*.blend2

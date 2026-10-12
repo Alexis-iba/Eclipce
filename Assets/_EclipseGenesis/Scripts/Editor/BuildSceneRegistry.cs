@@ -10,6 +10,7 @@ namespace EclipseGenesis.EditorTools
     {
         public static readonly string[] Order =
         {
+            "Assets/_EclipseGenesis/Scenes/Eclipse_OpenZone.unity", // hand-built open map (opened first by the .exe)
             FacilitySceneBuilder.ScenePath,
             FpsTestSceneBuilder.ScenePath,
         };

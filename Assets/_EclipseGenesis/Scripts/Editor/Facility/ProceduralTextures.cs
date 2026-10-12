@@ -70,6 +70,14 @@ namespace EclipseGenesis.EditorTools.Facility
                     "DecalGrime" => Decal(256, new Color(0.05f, 0.045f, 0.04f), 3, 0.85f),
                     "DecalScorch" => Decal(256, new Color(0.01f, 0.01f, 0.01f), 7, 1f),
                     "DecalAlienFluid" => Decal(256, new Color(0.16f, 0.03f, 0.22f), 13, 0.9f),
+                    "GroundGrass" => GroundGrass(1024),
+                    "GroundDirt" => GroundDirt(1024),
+                    "GroundRock" => GroundRock(1024),
+                    "GroundGravel" => GroundGravel(1024),
+                    "GroundInfected" => GroundInfected(1024),
+                    "Asphalt" => Asphalt(1024),
+                    "Plaster" => Plaster(1024),
+                    "Bark" => Bark(512),
                     _ => throw new ArgumentException($"Unknown procedural texture '{name}'"),
                 };
                 Write(name, c);
@@ -449,6 +457,149 @@ namespace EclipseGenesis.EditorTools.Facility
                 c.Height[i] = a * 0.3f;
                 c.Smooth[i] = 0.6f;
             }
+            return c;
+        }
+
+        // ------------------------------------------------------------------ outdoor (Eclipse_OpenZone)
+
+        private static void Fill(Canvas c, System.Func<float, float, (Color albedo, float height, float metal, float smooth, float ao)> f)
+        {
+            int n = c.N;
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                int i = y * n + x;
+                var s = f((float)x / n, (float)y / n);
+                c.Albedo[i] = s.albedo;
+                c.Height[i] = s.height;
+                c.Metal[i] = s.metal;
+                c.Smooth[i] = s.smooth;
+                c.Ao[i] = s.ao;
+            }
+        }
+
+        /// <summary>Dry, sparse grass over soil: olive/straw blades with dirt showing through (tile ~6 m).</summary>
+        private static Canvas GroundGrass(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float patch = Fbm(u, v, 3, 5, 401);
+                float blades = Value(u * 380f, v * 95f, 380, 403) * 0.6f + Value(u * 190f, v * 760f, 190, 405) * 0.4f;
+                float soil = Mathf.SmoothStep(0.62f, 0.75f, Fbm(u, v, 6, 4, 407));
+                var olive = new Color(0.24f, 0.25f, 0.13f);
+                var straw = new Color(0.42f, 0.37f, 0.22f);
+                var dirt = new Color(0.27f, 0.22f, 0.16f);
+                Color grass = Color.Lerp(olive, straw, patch) * (0.75f + 0.45f * blades);
+                Color a = Color.Lerp(grass, dirt * (0.85f + 0.3f * blades), soil);
+                return (a, blades * (1f - soil) * 0.7f + 0.2f, 0f, 0.12f + 0.08f * soil, Mathf.Lerp(0.65f, 1f, blades));
+            });
+            return c;
+        }
+
+        /// <summary>Compacted soil with pebbles and tyre-worn patches (tile ~5 m).</summary>
+        private static Canvas GroundDirt(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float base_ = Fbm(u, v, 4, 5, 411);
+                float pebbles = Mathf.SmoothStep(0.72f, 0.8f, Value(u * 120f, v * 120f, 120, 413));
+                float fine = Value(u * 500f, v * 500f, 500, 415);
+                var col = Color.Lerp(new Color(0.24f, 0.19f, 0.14f), new Color(0.38f, 0.31f, 0.23f), base_) * (0.9f + 0.2f * fine);
+                col = Color.Lerp(col, new Color(0.45f, 0.43f, 0.4f), pebbles * 0.8f);
+                return (col, base_ * 0.4f + pebbles * 0.5f + fine * 0.1f, 0f, 0.15f + pebbles * 0.15f, Mathf.Lerp(0.7f, 1f, base_));
+            });
+            return c;
+        }
+
+        /// <summary>Weathered grey rock with cracks and lichen (tile ~8 m).</summary>
+        private static Canvas GroundRock(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float mass = Fbm(u, v, 3, 6, 421);
+                float cracks = Mathf.Pow(Ridged(u, v, 5, 4, 423), 8f);
+                float lichen = Mathf.SmoothStep(0.62f, 0.72f, Fbm(u, v, 8, 3, 425));
+                var col = Color.Lerp(new Color(0.27f, 0.26f, 0.25f), new Color(0.47f, 0.45f, 0.42f), mass);
+                col = Color.Lerp(col, new Color(0.33f, 0.34f, 0.22f), lichen * 0.6f) * (1f - cracks * 0.6f);
+                return (col, mass - cracks * 0.6f, 0f, 0.25f + mass * 0.15f, 1f - cracks * 0.5f);
+            });
+            return c;
+        }
+
+        /// <summary>Road gravel: packed grey-brown stones (tile ~4 m).</summary>
+        private static Canvas GroundGravel(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float stones = Value(u * 160f, v * 160f, 160, 431);
+                float big = Mathf.SmoothStep(0.55f, 0.7f, Value(u * 60f, v * 60f, 60, 433));
+                float base_ = Fbm(u, v, 4, 4, 435);
+                var col = Color.Lerp(new Color(0.3f, 0.28f, 0.25f), new Color(0.5f, 0.47f, 0.42f), stones * 0.7f + base_ * 0.3f);
+                col *= 1f - big * 0.25f;
+                return (col, stones * 0.6f + big * 0.4f, 0f, 0.2f + stones * 0.1f, Mathf.Lerp(0.6f, 1f, stones));
+            });
+            return c;
+        }
+
+        /// <summary>Alien-infected ground: dark violet crust with raised veins (tile ~6 m).</summary>
+        private static Canvas GroundInfected(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float crust = Fbm(u, v, 4, 5, 441);
+                float veins = Mathf.Pow(Ridged(u, v, 3, 4, 443), 9f);
+                var col = Color.Lerp(new Color(0.06f, 0.035f, 0.07f), new Color(0.16f, 0.07f, 0.17f), crust);
+                col += new Color(0.18f, 0.06f, 0.28f) * veins;
+                return (col, crust * 0.5f + veins * 0.6f, 0f, 0.35f + veins * 0.45f, 1f);
+            });
+            return c;
+        }
+
+        /// <summary>Worn asphalt with aggregate, patches and cracks (tile ~6 m).</summary>
+        private static Canvas Asphalt(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float agg = Value(u * 420f, v * 420f, 420, 451);
+                float patch = Mathf.SmoothStep(0.6f, 0.7f, Fbm(u, v, 3, 4, 453));
+                float cracks = Mathf.Pow(Ridged(u, v, 6, 3, 455), 14f);
+                float tone = 0.15f + agg * 0.07f - patch * 0.04f - cracks * 0.08f;
+                return (new Color(tone, tone, tone * 1.02f), 0.6f + agg * 0.2f - cracks * 0.5f, 0f, 0.18f + patch * 0.1f, 1f - cracks * 0.5f);
+            });
+            return c;
+        }
+
+        /// <summary>Exterior stucco with dirt streaks running down (tile ~3 m).</summary>
+        private static Canvas Plaster(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float grain = Value(u * 300f, v * 300f, 300, 461);
+                float blotch = Fbm(u, v, 3, 4, 463);
+                float streak = Mathf.SmoothStep(0.55f, 0.85f, Fbm(u * 1f, v * 0.08f, 12, 3, 465)) * (1f - v) * 1.2f;
+                float tone = 0.62f + (blotch - 0.5f) * 0.18f + (grain - 0.5f) * 0.06f - streak * 0.22f;
+                return (new Color(tone, tone * 0.97f, tone * 0.92f), grain * 0.3f + blotch * 0.2f, 0f, 0.1f + blotch * 0.08f, 1f);
+            });
+            return c;
+        }
+
+        /// <summary>Burnt bark with vertical fissures (tile ~1 m).</summary>
+        private static Canvas Bark(int n)
+        {
+            var c = new Canvas(n);
+            Fill(c, (u, v) =>
+            {
+                float fiss = Mathf.Pow(Ridged(u * 1f, v * 0.25f, 10, 3, 471), 4f);
+                float tone = 0.08f + 0.1f * Fbm(u, v, 6, 3, 473) - fiss * 0.05f;
+                return (new Color(tone * 1.1f, tone, tone * 0.9f), 1f - fiss, 0f, 0.12f, 1f - fiss * 0.4f);
+            });
             return c;
         }
 
