@@ -34,8 +34,15 @@ namespace EclipseGenesis.EditorTools.Art
 
             switch (category)
             {
+                case "Vegetation":
+                    // Foliage would give mesh colliders on every twig; trunks get simple capsules when placed.
+                    importer.addCollider = false;
+                    importer.animationType = ModelImporterAnimationType.None;
+                    importer.importAnimation = false;
+                    break;
                 case "Environment":
                 case "Vehicles":
+                case "Props":
                     // Static scenery: real colliders from the mesh (use simple UCX_ collision meshes for heavy assets).
                     importer.addCollider = true;
                     importer.animationType = ModelImporterAnimationType.None;

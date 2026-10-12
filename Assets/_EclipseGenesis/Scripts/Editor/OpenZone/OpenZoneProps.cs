@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EclipseGenesis.EditorTools.Art;
 using EclipseGenesis.EditorTools.Facility;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -58,6 +59,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
         /// <summary>Single-storey house with door, windows, two rooms, furniture and a flat roof with parapet.</summary>
         public Transform House(Transform parent, string name, Vector3 pos, float yaw, float w, float d, bool damaged, bool lit)
         {
+            if (ArtLibrary.Has(ArtLibrary.HouseA)) return WoodenHouse(parent, name, pos, yaw, damaged, lit);
             var g = G(parent, name, pos, yaw);
             const float h = 3.1f;
             var rect = new RoomRect(-w * 0.5f, w * 0.5f, -d * 0.5f, d * 0.5f, h);
@@ -89,6 +91,55 @@ namespace EclipseGenesis.EditorTools.OpenZone
                     FacilityKit.SetRef(f, "targetLight", l);
                     FacilityKit.SetFloat(f, "baseIntensity", l.intensity);
                 }
+            }
+            return g;
+        }
+
+        /// <summary>
+        /// Two-storey wooden house modelled in Blender (SM_House_A, front door on its local +Z) furnished with CC0 Poly Haven
+        /// furniture. <paramref name="yaw"/> keeps the procedural convention (door towards local -Z), so the model turns 180°.
+        /// </summary>
+        private Transform WoodenHouse(Transform parent, string name, Vector3 pos, float yaw, bool damaged, bool lit)
+        {
+            var g = G(parent, name, pos, yaw);
+            var body = FacilityKit.Group(g, "Model");
+            body.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            ArtLibrary.Place(ArtLibrary.HouseA, body, Vector3.zero, 0f);
+            const float f = 0.45f, l2 = 3.45f;   // ground and upper floor levels (house_builder.py)
+            void Prop(string id, float x, float y, float z, float rot) =>
+                ArtLibrary.Place(ArtLibrary.PolyHaven("Props", id), body, new Vector3(x, y, z), rot + R(-6f, 6f));
+            // Ground floor: living room (x < -1.06) and hall/kitchen; stairs along +X.
+            Prop("sofa_03", -3.55f, f, 0.6f, 90f);
+            Prop("wooden_table_02", -2.3f, f, -2.2f, 0f);
+            Prop("painted_wooden_chair_01", -2.3f, f, -1.35f, 180f);
+            Prop("painted_wooden_chair_01", -1.6f, f, -2.4f, 270f);
+            Prop("vintage_cabinet_01", 1.9f, f, -3.55f, 0f);
+            Prop("steel_frame_shelves_01", -0.6f, f, 3.55f, 180f);
+            // Upper floor: two bedrooms on the -X side.
+            Prop("old_bed_frame", -2.8f, l2, -2.1f, 90f);
+            Prop("steel_frame_shelves_01", -2.8f, l2, 3.55f, 180f);
+            Prop("painted_wooden_chair_01", 1.2f, l2, 2.8f, R(0f, 360f));
+            if (damaged)
+            {
+                // Side yard (the door faces the group's -Z).
+                Rubble(g, new Vector3(5.8f, 0f, R(-2f, 2f)), 1.2f);
+                K.Decal(g, K.M.DecalScorch, new Vector3(5.6f, 0.02f, 0f), Vector3.up, 4f, R(0f, 360f));
+                ArtLibrary.Place(ArtLibrary.PolyHaven("Environment", "old_tyre"), g, new Vector3(6.4f, 0f, R(-3f, 3f)), R(0f, 360f));
+            }
+            else
+            {
+                ArtLibrary.Place(ArtLibrary.PolyHaven("Environment", "small_lpg_tank"), body, new Vector3(5.4f, 0f, -2.5f), 90f);
+            }
+            if (lit)
+            {
+                var l = K.Point(body, "InteriorLight", new Vector3(-2.5f, l2 - 0.5f, 0.5f), 700f, 8f, new Color(1f, 0.78f, 0.55f));
+                if (Chance(0.5f))
+                {
+                    var flicker = l.gameObject.AddComponent<EclipseGenesis.World.FlickerLight>();
+                    FacilityKit.SetRef(flicker, "targetLight", l);
+                    FacilityKit.SetFloat(flicker, "baseIntensity", l.intensity);
+                }
+                K.Point(body, "UpstairsLight", new Vector3(-2.5f, 6.1f - 0.5f, -1.5f), 450f, 7f, new Color(1f, 0.8f, 0.6f));
             }
             return g;
         }
@@ -370,6 +421,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
 
         public void Barrel(Transform parent, Vector3 pos)
         {
+            if (ArtLibrary.Place(ArtLibrary.PolyHaven("Environment", "Barrel_01"), parent, pos, R(0f, 360f)) != null) return;
             K.Cylinder(parent, "Barrel", pos + Vector3.up * 0.45f, 0.3f, 0.9f, Chance(0.5f) ? Rust : K.M.PipeRed, Quaternion.identity);
         }
 
@@ -434,6 +486,13 @@ namespace EclipseGenesis.EditorTools.OpenZone
 
         public void DeadTree(Transform parent, Vector3 pos)
         {
+            // Game-ready pines (Blender) when available, with some fallen logs; procedural dead tree otherwise.
+            if (ArtLibrary.Has(ArtLibrary.Pines[0]))
+            {
+                if (Chance(0.18f) && ArtLibrary.Place(ArtLibrary.DeadLog, parent, pos + Vector3.down * 0.1f, R(0f, 360f), R(0.8f, 1.2f)) != null) return;
+                ArtLibrary.PlaceTree(ArtLibrary.Pines[_rng.Next(ArtLibrary.Pines.Length)], parent, pos + Vector3.down * 0.1f, R(0f, 360f), R(0.85f, 1.2f), 0.3f);
+                return;
+            }
             var g = G(parent, "DeadTree", pos, R(0f, 360f));
             float h = R(5f, 9f);
             K.Cylinder(g, "Trunk", new Vector3(0f, h * 0.35f, 0f), R(0.16f, 0.24f), h * 0.7f, Bark, Quaternion.Euler(R(-4f, 4f), 0f, R(-4f, 4f)));
@@ -468,6 +527,11 @@ namespace EclipseGenesis.EditorTools.OpenZone
 
         public GameObject Boulder(Transform parent, Vector3 pos, float size)
         {
+            // Decimated scans: single boulders (~1.5 m) or, for big sizes, the moss rock cluster (~8 m).
+            bool cluster = size > 2.4f && Chance(0.5f);
+            string scanned = cluster ? ArtLibrary.RockMossSet : ArtLibrary.RockBoulder;
+            if (ArtLibrary.Has(scanned))
+                return ArtLibrary.Place(scanned, parent, pos + Vector3.down * size * 0.12f, R(0f, 360f), cluster ? size / 6f : size / 1.5f * R(0.8f, 1.1f));
             var m = K.Meshes.Register($"rock_{_rng.Next(0, 6)}", () => RockMesh(_rng.Next(), 0.28f));
             var go = new GameObject("Rock");
             go.transform.SetParent(parent, false);

@@ -48,6 +48,7 @@ namespace EclipseGenesis.Tests
                 {
                     if (it.propertyType != SerializedPropertyType.ObjectReference || it.name == "m_Script") continue;
                     if (behaviour is EmergencyLight && it.name == "rotor") continue; // only rotating beacons have a rotor
+                    if (behaviour is EclipseGenesis.Mission.MissionManager && (it.name == "powerTerminal" || it.name == "defenseWave")) continue; // open-map operation only
                     Assert.IsNotNull(it.objectReferenceValue, $"{behaviour.name}/{behaviour.GetType().Name}.{it.propertyPath} is not assigned");
                 }
             }

@@ -68,6 +68,19 @@ namespace EclipseGenesis.Mission
             }
         }
 
+        /// <summary>All objective texts of the active operation, in order (HUD checklist).</summary>
+        public IReadOnlyList<string> Objectives => openZoneOperation ? _openObjectives : _objectives;
+
+        /// <summary>World position of objective <paramref name="index"/> for the compass marker; false when it has none (kill/defend objectives).</summary>
+        public bool TryGetObjectivePosition(int index, out Vector3 position)
+        {
+            Component target = openZoneOperation
+                ? index switch { 0 => labVolume, 1 => securityDoorVolume, 2 => emergencyTerminal, 3 => powerTerminal, 5 => researchRoomVolume, 6 => extractionVolume, _ => null }
+                : index switch { 0 => labVolume, 1 => securityDoorVolume, 2 => researchRoomVolume, 4 => emergencyTerminal, 5 => exitDoor, 6 => extractionVolume, _ => null };
+            position = target != null ? target.transform.position : Vector3.zero;
+            return target != null;
+        }
+
         /// <summary>Objective text changed (index, text) — HUD shows a notification.</summary>
         public event Action<int, string> ObjectiveChanged;
         public event Action<MissionState> Ended;
@@ -136,8 +149,8 @@ namespace EclipseGenesis.Mission
 
         private readonly List<string> _openObjectives = new List<string>
         {
-            "Avanza por la zona residencial",
-            "Ingresa en la instalación Genesis",
+            "Dirígete a la zona residencial",
+            "Ingresa a la base Genesis",
             "Recupera los datos de la terminal",
             "Restablece la energía de seguridad",
             "Repele el contraataque alienígena",

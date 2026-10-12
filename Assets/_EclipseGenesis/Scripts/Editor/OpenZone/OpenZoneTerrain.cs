@@ -62,6 +62,69 @@ namespace EclipseGenesis.EditorTools.OpenZone
             return Terrain;
         }
 
+        /// <summary>
+        /// Eight low-resolution terrains around the playable map: the boundary ridge continues into distant mountains,
+        /// so the horizon reads as landscape instead of the terrain edge. Same layers, painted by slope.
+        /// </summary>
+        public void BuildBackdrop(Transform parent)
+        {
+            const int res = 129;
+            const float height = 160f;
+            var layers = Terrain.terrainData.terrainLayers;
+            for (int tz = -1; tz <= 1; tz++)
+            for (int tx = -1; tx <= 1; tx++)
+            {
+                if (tx == 0 && tz == 0) continue;
+                var data = new TerrainData { heightmapResolution = res, alphamapResolution = 128, baseMapResolution = 256 };
+                data.size = new Vector3(Size.x, height, Size.z);
+                data.terrainLayers = layers;
+                Vector3 o = Origin + new Vector3(tx * Size.x, 0f, tz * Size.z);
+                var h = new float[res, res];
+                for (int iz = 0; iz < res; iz++)
+                for (int ix = 0; ix < res; ix++)
+                {
+                    float x = o.x + ix / (float)(res - 1) * Size.x, z = o.z + iz / (float)(res - 1) * Size.z;
+                    h[iz, ix] = Mathf.Clamp01((BackdropHeight(x, z) - Origin.y) / height);
+                }
+                data.SetHeights(0, 0, h);
+                var splat = new float[128, 128, layers.Length];
+                for (int iz = 0; iz < 128; iz++)
+                for (int ix = 0; ix < 128; ix++)
+                {
+                    float slope = data.GetSteepness(ix / 127f, iz / 127f);
+                    float rock = Smooth(18f, 30f, slope);
+                    splat[iz, ix, 0] = 1f - rock;
+                    splat[iz, ix, 2] = rock;
+                }
+                data.SetAlphamaps(0, 0, splat);
+                string path = $"{Folder}/OpenZone_Backdrop_{tx + 1}{tz + 1}.asset";
+                AssetDatabase.DeleteAsset(path);
+                AssetDatabase.CreateAsset(data, path);
+                var go = Terrain.CreateTerrainGameObject(data);
+                go.name = $"Backdrop_{tx + 1}{tz + 1}";
+                go.transform.SetParent(parent, false);
+                go.transform.position = o;
+                var t = go.GetComponent<Terrain>();
+                t.allowAutoConnect = false;   // different resolution from the playable terrain: no seam stitching
+                t.groupingID = 1;
+                t.heightmapPixelError = 12f;
+                t.basemapDistance = 0f;
+                t.drawInstanced = true;
+                t.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            }
+        }
+
+        /// <summary>Outside the map: the boundary ridge rises into mountain ranges; continuous with <see cref="NaturalHeight"/> at the border.</summary>
+        private float BackdropHeight(float x, float z)
+        {
+            float dx = Mathf.Max(Origin.x - x, 0f, x - (Origin.x + Size.x));
+            float dz = Mathf.Max(Origin.z - z, 0f, z - (Origin.z + Size.z));
+            float outside = Mathf.Sqrt(dx * dx + dz * dz);
+            float mountains = Smooth(0f, 300f, outside) * (18f + 55f * Noise(x * 0.004f, z * 0.004f, 21))
+                + Smooth(0f, 120f, outside) * (Noise(x * 0.02f, z * 0.02f, 23) - 0.5f) * 18f;
+            return NaturalHeight(x, z) + mountains;
+        }
+
         /// <summary>World height of the ground at (x, z).</summary>
         public float GroundAt(float x, float z) => Terrain != null ? Terrain.SampleHeight(new Vector3(x, 0f, z)) + Origin.y : 0f;
 
@@ -70,7 +133,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
         private float NaturalHeight(float x, float z)
         {
             float edge = Mathf.Min(Mathf.Min(x - Origin.x, Origin.x + Size.x - x), Mathf.Min(z - Origin.z, Origin.z + Size.z - z));
-            float ridge = (1f - Mathf.SmoothStep(0f, 55f, edge)) * (22f + 18f * Noise(x * 0.012f, z * 0.012f, 7));
+            float ridge = (1f - Smooth(0f, 55f, edge)) * (22f + 18f * Noise(x * 0.012f, z * 0.012f, 7));
             float rolling = (Noise(x * 0.011f, z * 0.011f, 3) - 0.5f) * 7f + (Noise(x * 0.045f, z * 0.045f, 5) - 0.5f) * 1.2f;
             return rolling + ridge;
         }
@@ -84,13 +147,13 @@ namespace EclipseGenesis.EditorTools.OpenZone
                 float dx = Mathf.Max(p.X0 - x, 0f, x - p.X1);
                 float dz = Mathf.Max(p.Z0 - z, 0f, z - p.Z1);
                 float d = Mathf.Sqrt(dx * dx + dz * dz);
-                float pw = 1f - Mathf.SmoothStep(0f, p.Falloff, d);
+                float pw = 1f - Smooth(0f, p.Falloff, d);
                 if (pw > w) { w = pw; target = p.Height; }
             }
             foreach (var (a, b, half) in Roads)
             {
                 float d = DistanceToSegment(new Vector2(x, z), a, b);
-                float rw = 1f - Mathf.SmoothStep(half, half + 9f, d);
+                float rw = 1f - Smooth(half, half + 9f, d);
                 if (rw > w) { w = rw; target = -0.04f; }
             }
             return w;
@@ -136,12 +199,15 @@ namespace EclipseGenesis.EditorTools.OpenZone
 
         private TerrainLayer[] CreateLayers()
         {
+            // Scanned CC0 Poly Haven ground sets when downloaded (Art/Imported/Textures), procedural fallback otherwise.
+            TerrainLayer Scan(string id, string fallbackName, string fallbackTexture, float tile) =>
+                EclipseGenesis.EditorTools.Art.PolyHavenLibrary.TerrainLayerFor(id) ?? Layer(fallbackName, fallbackTexture, tile);
             return new[]
             {
-                Layer("TL_DryGrass", "GroundGrass", 6f),
-                Layer("TL_Dirt", "GroundDirt", 5f),
-                Layer("TL_Rock", "GroundRock", 9f),
-                Layer("TL_Gravel", "GroundGravel", 4f),
+                Scan("sparse_grass", "TL_DryGrass", "GroundGrass", 6f),
+                Scan("dry_mud_field_001", "TL_Dirt", "GroundDirt", 5f),
+                Scan("rocky_terrain_02", "TL_Rock", "GroundRock", 9f),
+                Scan("rocky_trail", "TL_Gravel", "GroundGravel", 4f),
                 Layer("TL_Infected", "GroundInfected", 6f),
             };
         }
@@ -177,16 +243,16 @@ namespace EclipseGenesis.EditorTools.OpenZone
                 float x = Origin.x + nx * Size.x, z = Origin.z + nz * Size.z;
                 float slope = data.GetSteepness(nx, nz);
 
-                float rock = Mathf.SmoothStep(22f, 34f, slope);
-                float road = 1f - Mathf.SmoothStep(-0.5f, 1.5f, RoadDistance(x, z));
-                float crater = 1f - Mathf.SmoothStep(CraterRadius * 0.9f, CraterRadius * 2.1f, Vector2.Distance(new Vector2(x, z), CraterCenter) + (Noise(x * 0.08f, z * 0.08f, 11) - 0.5f) * 14f);
+                float rock = Smooth(22f, 34f, slope);
+                float road = 1f - Smooth(-0.5f, 1.5f, RoadDistance(x, z));
+                float crater = 1f - Smooth(CraterRadius * 0.9f, CraterRadius * 2.1f, Vector2.Distance(new Vector2(x, z), CraterCenter) + (Noise(x * 0.08f, z * 0.08f, 11) - 0.5f) * 14f);
                 float wear = 0f;
                 foreach (var p in Pads)
                 {
                     float dx = Mathf.Max(p.X0 - x, 0f, x - p.X1), dz = Mathf.Max(p.Z0 - z, 0f, z - p.Z1);
-                    wear = Mathf.Max(wear, 1f - Mathf.SmoothStep(0f, 6f, Mathf.Sqrt(dx * dx + dz * dz)));
+                    wear = Mathf.Max(wear, 1f - Smooth(0f, 6f, Mathf.Sqrt(dx * dx + dz * dz)));
                 }
-                float dirtNoise = Mathf.SmoothStep(0.58f, 0.7f, Noise(x * 0.03f, z * 0.03f, 13));
+                float dirtNoise = Smooth(0.58f, 0.7f, Noise(x * 0.03f, z * 0.03f, 13));
                 float dirt = Mathf.Max(wear * 0.75f, dirtNoise * 0.8f);
 
                 float wInf = crater;
@@ -205,6 +271,13 @@ namespace EclipseGenesis.EditorTools.OpenZone
         }
 
         // ------------------------------------------------------------------ helpers
+
+        /// <summary>GLSL-style smoothstep (0 below e0, 1 above e1). Unity's Mathf.SmoothStep(from, to, t) is an interpolation, not this.</summary>
+        public static float Smooth(float e0, float e1, float x)
+        {
+            float t = Mathf.Clamp01((x - e0) / (e1 - e0));
+            return t * t * (3f - 2f * t);
+        }
 
         public static float Noise(float x, float z, int seed)
         {

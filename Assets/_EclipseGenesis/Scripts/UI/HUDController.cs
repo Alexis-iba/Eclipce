@@ -2,6 +2,7 @@ using EclipseGenesis.Combat;
 using EclipseGenesis.Mission;
 using EclipseGenesis.Weapons;
 using EclipseGenesis.World;
+using EclipseGenesis.AI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -30,10 +31,27 @@ namespace EclipseGenesis.UI
         private static readonly Color Red = new Color(0.9f, 0.14f, 0.1f, 1f);
         private static readonly Color Blue = new Color(0.22f, 0.66f, 1f, 1f);
 
+        private static readonly Color Amber = new Color(1f, 0.72f, 0.2f, 1f);
+        private static readonly Color Dim = new Color(0.55f, 0.58f, 0.62f, 0.55f);
+        private const float RadarSize = 210f;
+        private const float RadarRange = 60f;
+        private const int ShieldPlates = 3;
+
         private Font _font;
         private RectTransform _root;
-        private Image _shieldFill, _healthFill, _reloadFill, _vignette, _hitmarkerA, _hitmarkerB, _hitmarkerC, _hitmarkerD;
-        private Text _shieldText, _healthText, _weaponName, _ammo, _reserve, _reloadLabel, _objective, _missionTitle, _banner, _bannerTitle, _prompt;
+        private Image _healthFill, _reloadFill, _vignette, _hitmarkerA, _hitmarkerB, _hitmarkerC, _hitmarkerD;
+        private readonly Image[] _shieldPlates = new Image[ShieldPlates];
+        private float _shieldFraction = 1f;
+        private Text _shieldText, _healthText, _weaponName, _ammo, _reserve, _reloadLabel, _fireMode, _missionTitle, _banner, _bannerTitle, _prompt;
+        private string _objectiveText = string.Empty;
+        private RectTransform _objectivePanel, _objectiveList;
+        private Text[] _objectiveRows = new Text[0];
+        private RectTransform _radar, _radarObjective;
+        private Text _heading, _objectiveDistance;
+        private readonly Text[] _radarCardinals = new Text[4];
+        private readonly Image[] _radarBlips = new Image[12];
+        private AlienHealth[] _aliens = new AlienHealth[0];
+        private float _nextAlienScan;
         private CanvasGroup _bannerGroup, _endGroup;
         private RectTransform[] _crosshair = new RectTransform[4];
         private Image _crossDot;
@@ -48,9 +66,9 @@ namespace EclipseGenesis.UI
         private GameObject _endButtons;
 
         public string AmmoText => _ammo != null ? _ammo.text : string.Empty;
-        public string ObjectiveText => _objective != null ? _objective.text : string.Empty;
+        public string ObjectiveText => _objectiveText;
         public float HealthFill => _healthFill != null ? _healthFill.fillAmount : 0f;
-        public float ShieldFill => _shieldFill != null ? _shieldFill.fillAmount : 0f;
+        public float ShieldFill => _shieldFraction;
         public bool HitmarkerVisible => _hitmarkerA != null && _hitmarkerA.color.a > 0.01f;
         public bool EndScreenVisible => _endGroup != null && _endGroup.alpha > 0.5f;
 
@@ -85,7 +103,7 @@ namespace EclipseGenesis.UI
             }
             else
             {
-                _objective.transform.parent.gameObject.SetActive(false);
+                _objectivePanel.gameObject.SetActive(false);
             }
         }
 
@@ -111,29 +129,10 @@ namespace EclipseGenesis.UI
             _vignette.color = new Color(Red.r, Red.g, Red.b, 0f);
             _vignette.raycastTarget = false;
 
-            // Bottom-left: shield + health.
-            var vitals = Box(_root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(420, 96));
-            Label(vitals, "ESCUDO", 15, Grey, new Vector2(18, -12), new Vector2(120, 20), TextAnchor.UpperLeft);
-            _shieldText = Label(vitals, "100", 15, Blue, new Vector2(-18, -12), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
-            _shieldFill = Bar(vitals, new Vector2(18, -34), new Vector2(384, 8), Blue);
-            Label(vitals, "SALUD", 15, Grey, new Vector2(18, -50), new Vector2(120, 20), TextAnchor.UpperLeft);
-            _healthText = Label(vitals, "100", 15, White, new Vector2(-18, -50), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
-            _healthFill = Bar(vitals, new Vector2(18, -72), new Vector2(384, 10), White);
-
-            // Bottom-right: weapon + ammo.
-            var weapon = Box(_root, "Weapon", new Vector2(1, 0), new Vector2(-40, 40), new Vector2(360, 110));
-            _weaponName = Label(weapon, "EG-47", 16, Grey, new Vector2(18, -12), new Vector2(200, 22), TextAnchor.UpperLeft);
-            Label(weapon, "AUTO", 13, Blue, new Vector2(-18, -14), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
-            _ammo = Label(weapon, "30", 52, White, new Vector2(18, -36), new Vector2(150, 60), TextAnchor.UpperLeft);
-            _reserve = Label(weapon, "/ 120", 22, Grey, new Vector2(130, -62), new Vector2(160, 30), TextAnchor.UpperLeft);
-            _reloadLabel = Label(weapon, "RECARGANDO", 13, Blue, new Vector2(-18, -66), new Vector2(160, 20), TextAnchor.UpperRight, rightAlign: true);
-            _reloadFill = Bar(weapon, new Vector2(18, -96), new Vector2(324, 4), Blue);
-
-            // Top-left: mission + objective.
-            var obj = Box(_root, "Objective", new Vector2(0, 1), new Vector2(40, -40), new Vector2(520, 78));
-            _missionTitle = Label(obj, MissionManager.MissionName, 14, Blue, new Vector2(18, -12), new Vector2(480, 20), TextAnchor.UpperLeft);
-            Img(obj, "Accent", Blue, new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0), new Vector2(3, 0));
-            _objective = Label(obj, "", 21, White, new Vector2(18, -36), new Vector2(490, 32), TextAnchor.UpperLeft);
+            BuildVitals();
+            BuildWeaponCard();
+            BuildRadar();
+            BuildObjectivePanel();
 
             // Objective banner.
             var banner = new GameObject("Banner", typeof(RectTransform)).GetComponent<RectTransform>();
@@ -181,6 +180,227 @@ namespace EclipseGenesis.UI
             BuildEndScreen();
         }
 
+        private void BuildVitals()
+        {
+            // Bottom-left: segmented armour plates (shield) over a health bar.
+            var vitals = Box(_root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(430, 92));
+            Img(vitals, "Accent", Blue, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0));
+            Label(vitals, "ESCUDO", 14, Grey, new Vector2(18, -10), new Vector2(120, 20), TextAnchor.UpperLeft);
+            _shieldText = Label(vitals, "100", 16, Blue, new Vector2(-18, -9), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
+            float plateW = (394f - (ShieldPlates - 1) * 6f) / ShieldPlates;
+            for (int i = 0; i < ShieldPlates; i++)
+                _shieldPlates[i] = Bar(vitals, new Vector2(18 + i * (plateW + 6f), -32), new Vector2(plateW, 10), Blue);
+            Label(vitals, "SALUD", 14, Grey, new Vector2(18, -48), new Vector2(120, 20), TextAnchor.UpperLeft);
+            _healthText = Label(vitals, "100", 16, White, new Vector2(-18, -47), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
+            _healthFill = Bar(vitals, new Vector2(18, -70), new Vector2(394, 12), White);
+        }
+
+        private void BuildWeaponCard()
+        {
+            // Bottom-right: weapon silhouette, name, fire mode, magazine / reserve, reload bar and grenade slots.
+            var card = Box(_root, "Weapon", new Vector2(1, 0), new Vector2(-40, 40), new Vector2(430, 132));
+            Img(card, "Accent", Blue, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-3, 0), new Vector2(3, 0));
+            var icon = new GameObject("WeaponIcon", typeof(RectTransform)).GetComponent<RectTransform>();
+            icon.SetParent(card, false);
+            Anchor(icon, new Vector2(0, 1), new Vector2(16, -14), new Vector2(190, 62));
+            RifleSilhouette(icon, new Color(0.94f, 0.95f, 0.96f, 0.85f));
+            _weaponName = Label(card, "EG-47", 22, White, new Vector2(-20, -10), new Vector2(200, 28), TextAnchor.UpperRight, rightAlign: true);
+            _fireMode = Label(card, "AUTO", 13, Blue, new Vector2(-20, -38), new Vector2(120, 18), TextAnchor.UpperRight, rightAlign: true);
+            _reserve = Label(card, "/ 120", 22, Grey, new Vector2(-20, -66), new Vector2(110, 30), TextAnchor.UpperRight, rightAlign: true);
+            _ammo = Label(card, "30", 50, White, new Vector2(-112, -50), new Vector2(110, 56), TextAnchor.UpperRight, rightAlign: true);
+            _reloadLabel = Label(card, "", 13, Blue, new Vector2(140, -88), new Vector2(150, 20), TextAnchor.UpperLeft);
+            _reloadFill = Bar(card, new Vector2(16, -114), new Vector2(398, 4), Blue);
+
+            // Grenade slots (lethal / tactical) under the weapon icon. Visual only until the grenade system exists (see ROADMAP).
+            for (int i = 0; i < 2; i++)
+            {
+                var slot = Img(card, "GrenadeSlot", new Color(1f, 1f, 1f, 0.08f), new Vector2(0, 1), new Vector2(0, 1), Vector2.zero, new Vector2(40, 22));
+                slot.rectTransform.pivot = new Vector2(0, 1);
+                slot.rectTransform.anchoredPosition = new Vector2(16 + i * 46, -84);
+                var pin = Img(slot.rectTransform, "Grenade", i == 0 ? Dim : new Color(Blue.r, Blue.g, Blue.b, 0.55f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-6, 0), new Vector2(11, 14));
+                pin.rectTransform.localRotation = Quaternion.Euler(0, 0, 45f);
+                Label(slot.rectTransform, "0", 13, Dim, new Vector2(-4, -3), new Vector2(16, 18), TextAnchor.UpperRight, rightAlign: true);
+            }
+            Label(card, "[G]", 12, Dim, new Vector2(110, -88), new Vector2(30, 18), TextAnchor.UpperLeft);
+        }
+
+        private void RifleSilhouette(RectTransform parent, Color c)
+        {
+            // Simple side view of the EG-47 (muzzle to the right), built from rectangles so it scales cleanly.
+            void Part(string n, float x, float y, float w, float h, float rot = 0f)
+            {
+                var img = Img(parent, n, c, new Vector2(0, 0), new Vector2(0, 0), Vector2.zero, new Vector2(w, h));
+                img.rectTransform.pivot = new Vector2(0, 0);
+                img.rectTransform.anchoredPosition = new Vector2(x, y);
+                img.rectTransform.localRotation = Quaternion.Euler(0, 0, rot);
+            }
+            Part("Stock", 0, 30, 34, 16);
+            Part("StockTube", 30, 36, 14, 7);
+            Part("Receiver", 42, 30, 70, 18);
+            Part("Rail", 50, 48, 58, 3);
+            Part("Sight", 64, 51, 26, 10);
+            Part("Handguard", 112, 32, 46, 14);
+            Part("Barrel", 158, 36, 22, 5);
+            Part("Muzzle", 178, 34, 10, 9);
+            Part("Grip", 54, 9, 11, 22, 16f);
+            Part("Magazine", 82, 6, 14, 25, -12f);
+            Part("Trigger", 64, 24, 14, 6);
+        }
+
+        private void BuildRadar()
+        {
+            // Top-left: heading-up radar with rotating cardinal letters, objective marker and nearby alien blips.
+            var frame = new GameObject("Radar", typeof(RectTransform)).GetComponent<RectTransform>();
+            frame.SetParent(_root, false);
+            Anchor(frame, new Vector2(0, 1), new Vector2(40, -40), new Vector2(RadarSize, RadarSize));
+            var disk = Sprite.Create(CircleTexture(0f), new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f));
+            var ring = Sprite.Create(CircleTexture(0.94f), new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f));
+            var bg = Img(frame, "Disk", new Color(0.02f, 0.03f, 0.035f, 0.72f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            bg.sprite = disk;
+            var outer = Img(frame, "Ring", new Color(Blue.r, Blue.g, Blue.b, 0.8f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            outer.sprite = ring;
+            var inner = Img(frame, "RingInner", new Color(1f, 1f, 1f, 0.12f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(RadarSize * 0.5f, RadarSize * 0.5f));
+            inner.sprite = ring;
+            Img(frame, "AxisV", new Color(1f, 1f, 1f, 0.06f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1, RadarSize - 16));
+            Img(frame, "AxisH", new Color(1f, 1f, 1f, 0.06f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(RadarSize - 16, 1));
+            _radar = frame;
+
+            string[] names = { "N", "E", "S", "O" };
+            for (int i = 0; i < 4; i++)
+            {
+                var l = Label(frame, names[i], i == 0 ? 18 : 15, i == 0 ? Amber : Grey, Vector2.zero, new Vector2(24, 22), TextAnchor.MiddleCenter, center: true);
+                l.rectTransform.anchorMin = l.rectTransform.anchorMax = l.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                _radarCardinals[i] = l;
+            }
+
+            for (int i = 0; i < _radarBlips.Length; i++)
+            {
+                _radarBlips[i] = Img(frame, "Blip", Red, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(8, 8));
+                _radarBlips[i].sprite = disk;
+                _radarBlips[i].enabled = false;
+            }
+
+            var marker = Img(frame, "ObjectiveMarker", Amber, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(12, 12));
+            marker.rectTransform.localRotation = Quaternion.Euler(0, 0, 45f);
+            _radarObjective = marker.rectTransform;
+
+            var player = Label(frame, "▲", 18, White, Vector2.zero, new Vector2(24, 24), TextAnchor.MiddleCenter, center: true);
+            player.rectTransform.anchorMin = player.rectTransform.anchorMax = player.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+
+            _heading = Label(frame, "N 000°", 15, White, new Vector2(0, -RadarSize - 6), new Vector2(RadarSize, 20), TextAnchor.UpperCenter, center: true);
+            _objectiveDistance = Label(frame, "", 14, Amber, new Vector2(0, -RadarSize - 26), new Vector2(RadarSize, 20), TextAnchor.UpperCenter, center: true);
+        }
+
+        private void BuildObjectivePanel()
+        {
+            // Right of the radar: operation name and the full objective checklist.
+            _objectivePanel = Box(_root, "Objective", new Vector2(0, 1), new Vector2(40 + RadarSize + 16, -40), new Vector2(430, 64));
+            Img(_objectivePanel, "Accent", Blue, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0));
+            _missionTitle = Label(_objectivePanel, MissionManager.MissionName, 16, Blue, new Vector2(18, -12), new Vector2(400, 22), TextAnchor.UpperLeft);
+            _objectiveList = new GameObject("List", typeof(RectTransform)).GetComponent<RectTransform>();
+            _objectiveList.SetParent(_objectivePanel, false);
+            Anchor(_objectiveList, new Vector2(0, 1), new Vector2(0, -40), new Vector2(430, 0));
+        }
+
+        private void RefreshObjectiveList(int index, string currentText)
+        {
+            var m = MissionManager.Current;
+            var all = m != null ? m.Objectives : null;
+            if (all == null || all.Count == 0) return;
+            if (_objectiveRows.Length != all.Count)
+            {
+                foreach (var row in _objectiveRows) if (row != null) Destroy(row.gameObject);
+                _objectiveRows = new Text[all.Count];
+                for (int i = 0; i < all.Count; i++)
+                    _objectiveRows[i] = Label(_objectiveList, "", 17, Grey, new Vector2(18, -i * 26), new Vector2(400, 24), TextAnchor.UpperLeft);
+                _objectivePanel.sizeDelta = new Vector2(_objectivePanel.sizeDelta.x, 48 + all.Count * 26);
+            }
+            bool finished = m.State != MissionState.InProgress;
+            for (int i = 0; i < all.Count; i++)
+            {
+                bool done = i < index || (finished && m.State == MissionState.Victory);
+                bool current = i == index && !finished;
+                _objectiveRows[i].text = done ? $"■  {all[i]}" : current ? $"►  {currentText}" : $"□  {all[i]}";
+                _objectiveRows[i].color = done ? new Color(Blue.r, Blue.g, Blue.b, 0.6f) : current ? White : Dim;
+                _objectiveRows[i].fontStyle = current ? FontStyle.Bold : FontStyle.Normal;
+            }
+        }
+
+        private void UpdateRadar(float t)
+        {
+            if (viewCamera == null || _radar == null) return;
+            Vector3 fwd = Vector3.ProjectOnPlane(viewCamera.transform.forward, Vector3.up);
+            if (fwd.sqrMagnitude < 1e-4f) fwd = transform.forward;
+            fwd.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up, fwd);
+            Vector3 origin = transform.position;
+            float radius = RadarSize * 0.5f;
+            Vector2 ToRadar(Vector3 world) => new Vector2(Vector3.Dot(world, right), Vector3.Dot(world, fwd));
+
+            Vector3[] cardinals = { Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
+            for (int i = 0; i < 4; i++)
+                _radarCardinals[i].rectTransform.anchoredPosition = ToRadar(cardinals[i]) * (radius - 15f);
+            float yaw = Mathf.Repeat(Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg, 360f);
+            string[] dirs = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" };
+            _heading.text = $"{dirs[Mathf.RoundToInt(yaw / 45f) % 8]}  {Mathf.RoundToInt(yaw) % 360:000}°";
+
+            var m = MissionManager.Current;
+            if (m != null && m.State == MissionState.InProgress && m.TryGetObjectivePosition(m.ObjectiveIndex, out var target))
+            {
+                Vector3 rel = target - origin;
+                rel.y = 0f;
+                Vector2 p = ToRadar(rel) / RadarRange * radius;
+                if (p.magnitude > radius - 10f) p = p.normalized * (radius - 10f);
+                _radarObjective.gameObject.SetActive(true);
+                _radarObjective.anchoredPosition = p;
+                float pulse = 1f + 0.15f * Mathf.Sin(t * 4f);
+                _radarObjective.localScale = new Vector3(pulse, pulse, 1f);
+                _objectiveDistance.text = $"OBJETIVO  {Mathf.RoundToInt(rel.magnitude)} m";
+            }
+            else
+            {
+                _radarObjective.gameObject.SetActive(false);
+                _objectiveDistance.text = "";
+            }
+
+            // Proximity sensor: living aliens inside the radar range.
+            if (t >= _nextAlienScan)
+            {
+                _aliens = FindObjectsByType<AlienHealth>();
+                _nextAlienScan = t + 1f;
+            }
+            int blip = 0;
+            foreach (var a in _aliens)
+            {
+                if (blip >= _radarBlips.Length) break;
+                if (a == null || !a.IsAlive) continue;
+                Vector3 rel = a.transform.position - origin;
+                rel.y = 0f;
+                if (rel.magnitude > RadarRange) continue;
+                var img = _radarBlips[blip++];
+                img.enabled = true;
+                img.rectTransform.anchoredPosition = ToRadar(rel) / RadarRange * (radius - 6f);
+                img.color = new Color(Red.r, Red.g, Red.b, 0.7f + 0.3f * Mathf.Sin(t * 6f + blip));
+            }
+            for (int i = blip; i < _radarBlips.Length; i++) _radarBlips[i].enabled = false;
+        }
+
+        private static Texture2D CircleTexture(float innerRadius)
+        {
+            // Anti-aliased disk (innerRadius 0) or ring (innerRadius = fraction of the outer radius).
+            var tex = new Texture2D(128, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < 128; y++)
+            for (int x = 0; x < 128; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), new Vector2(63.5f, 63.5f)) / 63.5f;
+                float a = Mathf.Clamp01((1f - d) * 64f);
+                if (innerRadius > 0f) a *= Mathf.Clamp01((d - innerRadius) * 64f);
+                tex.SetPixel(x, y, new Color(1, 1, 1, a));
+            }
+            tex.Apply();
+            return tex;
+        }
+
         private void BuildEndScreen()
         {
             var end = new GameObject("EndScreen", typeof(RectTransform)).GetComponent<RectTransform>();
@@ -216,7 +436,8 @@ namespace EclipseGenesis.UI
             float t = Time.unscaledTime;
             if (health != null)
             {
-                _shieldFill.fillAmount = health.Shield / Mathf.Max(1f, health.MaxShield);
+                _shieldFraction = health.Shield / Mathf.Max(1f, health.MaxShield);
+                for (int i = 0; i < ShieldPlates; i++) _shieldPlates[i].fillAmount = Mathf.Clamp01(_shieldFraction * ShieldPlates - i);
                 _healthFill.fillAmount = health.Health / Mathf.Max(1f, health.MaxHealth);
                 _shieldText.text = Mathf.CeilToInt(health.Shield).ToString();
                 _healthText.text = Mathf.CeilToInt(health.Health).ToString();
@@ -229,6 +450,7 @@ namespace EclipseGenesis.UI
             if (weapons != null && weapons.CurrentData != null)
             {
                 _weaponName.text = weapons.CurrentData.displayName;
+                _fireMode.text = weapons.CurrentData.pellets > 1 ? "BOMBEO" : weapons.CurrentData.automatic ? "AUTO" : "SEMI";
                 _ammo.text = weapons.Magazine.ToString();
                 _ammo.color = weapons.Magazine <= weapons.CurrentData.magazineSize * 0.2f ? Red : White;
                 _reserve.text = $"/ {weapons.Reserve}";
@@ -237,6 +459,8 @@ namespace EclipseGenesis.UI
                 _reloadFill.fillAmount = reloading ? weapons.ReloadProgress : 0f;
                 UpdateCrosshair();
             }
+
+            UpdateRadar(t);
 
             _prompt.text = interaction != null && interaction.Focused != null && interaction.Focused.CanInteract ? $"[F]  {interaction.Focused.Prompt}" : "";
 
@@ -302,7 +526,8 @@ namespace EclipseGenesis.UI
 
         private void OnObjective(int index, string text)
         {
-            _objective.text = $"■  {text}";
+            _objectiveText = $"■  {text}";
+            RefreshObjectiveList(index, text);
             if (index > 0 || Time.timeSinceLevelLoad > 0.5f)
             {
                 _banner.text = text;
@@ -443,7 +668,8 @@ namespace EclipseGenesis.UI
             for (int x = 0; x < 128; x++)
             {
                 float d = Vector2.Distance(new Vector2(x, y), new Vector2(63.5f, 63.5f)) / 90f;
-                tex.SetPixel(x, y, new Color(1, 1, 1, Mathf.SmoothStep(0.45f, 1f, d)));
+                float s = Mathf.Clamp01((d - 0.45f) / 0.55f);
+                tex.SetPixel(x, y, new Color(1, 1, 1, s * s * (3f - 2f * s)));
             }
             tex.Apply();
             return tex;

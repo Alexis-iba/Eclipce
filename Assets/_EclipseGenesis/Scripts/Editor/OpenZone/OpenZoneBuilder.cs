@@ -68,6 +68,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
             BuildNavigation();
             var player = SpawnPlayer();
             MissionBuilder.Apply(kit, player);
+            ConfigureOperation(kit);
             SpawnOutdoorAliens(root);
             BuildQaMarkers();
             new GameObject("PerformanceLogger").AddComponent<PerformanceLogger>();
@@ -96,6 +97,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
             t.SmallCraters.Add((new Vector2(34f, -30f), 5f));
             t.SmallCraters.Add((new Vector2(-44f, -162f), 4f));
             t.Build(root);
+            t.BuildBackdrop(root);
             return t;
         }
 
@@ -288,7 +290,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
         {
             var g = FacilityKit.Group(root, "Nature");
             int trees = 0, shrubs = 0, rocks = 0, guard = 0;
-            while ((trees < 70 || shrubs < 140 || rocks < 60) && guard++ < 20000)
+            while ((trees < 160 || shrubs < 140 || rocks < 60) && guard++ < 30000)
             {
                 float x = p.R(-185f, 185f), z = p.R(-245f, 125f);
                 if (Bunker.Contains(new Vector3(x, 1f, z)) || (x > -45f && x < 30f && z > -20f && z < 125f)) continue;
@@ -301,7 +303,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
                 float slope = Vector3.Angle(n, Vector3.up);
                 var pos = new Vector3(x, y, z);
                 if (rocks < 60 && (slope > 16f || p.Chance(0.15f))) { p.Boulder(g, pos, p.R(0.8f, 3.2f)); rocks++; }
-                else if (trees < 70 && slope < 24f && p.Chance(0.5f)) { p.DeadTree(g, pos); trees++; }
+                else if (trees < 160 && slope < 24f && p.Chance(0.6f)) { p.DeadTree(g, pos); trees++; }
                 else if (shrubs < 140 && slope < 30f) { p.AddShrub(g, pos); shrubs++; }
             }
         }
@@ -315,13 +317,13 @@ namespace EclipseGenesis.EditorTools.OpenZone
         {
             var sun = new GameObject("Sun");
             sun.transform.SetParent(root, false);
-            sun.transform.rotation = Quaternion.Euler(13f, -38f, 0f);
+            sun.transform.rotation = Quaternion.Euler(12f, 165f, 0f);   // low sunset sun behind the Genesis base (north), as in the concept art
             sun.AddHDLight(LightType.Directional);
             var light = sun.GetComponent<Light>();
             light.lightUnit = LightUnit.Lux;
             light.intensity = 20000f;
             light.useColorTemperature = true;
-            light.colorTemperature = 4100f;
+            light.colorTemperature = 4400f;
             light.shadows = LightShadows.Soft;
 
             FpsTestSceneBuilder.EnsureFolder(Path.GetDirectoryName(ProfilePath));
@@ -345,7 +347,7 @@ namespace EclipseGenesis.EditorTools.OpenZone
             exposure.mode.Override(ExposureMode.AutomaticHistogram);
             exposure.limitMin.Override(8.5f);
             exposure.limitMax.Override(13f);
-            exposure.compensation.Override(0.4f);
+            exposure.compensation.Override(0.7f);
 
             var fog = Add<Fog>();
             fog.enabled.Override(true);
@@ -360,9 +362,9 @@ namespace EclipseGenesis.EditorTools.OpenZone
             Add<Tonemapping>().mode.Override(TonemappingMode.ACES);
             var color = Add<ColorAdjustments>();
             color.contrast.Override(16f);
-            color.saturation.Override(-10f);
-            color.colorFilter.Override(new Color(1.03f, 0.98f, 0.93f));
-            Add<WhiteBalance>().temperature.Override(6f);
+            color.saturation.Override(0f);
+            color.colorFilter.Override(Color.white);
+            Add<WhiteBalance>().temperature.Override(-4f);   // keep shadows cool against the warm sun
             Add<Bloom>().intensity.Override(0.1f);
             var ao = Add<ScreenSpaceAmbientOcclusion>();
             ao.intensity.Override(0.8f);
@@ -391,6 +393,46 @@ namespace EclipseGenesis.EditorTools.OpenZone
             box.isTrigger = true;
             box.center = Bunker.center;
             box.size = Bunker.size + new Vector3(-0.4f, 0f, -0.6f);
+        }
+
+        /// <summary>
+        /// Switches the facility mission to the open-map "Operación Primer Contacto" (MissionManager open-zone flow):
+        /// residential zone → Genesis base → terminal data → security power (experiment room terminal) → clear the
+        /// Stalkers → back outside → extraction at the outpost helipad.
+        /// </summary>
+        private static void ConfigureOperation(FacilityKit kit)
+        {
+            var manager = Object.FindAnyObjectByType<EclipseGenesis.Mission.MissionManager>();
+            void Move(string name, Vector3 center, Vector3 size)
+            {
+                var v = GameObject.Find(name).GetComponent<EclipseGenesis.World.TriggerVolume>();
+                v.transform.position = center;
+                v.Size = size;
+            }
+            Move("Obj1_Lab", new Vector3(0f, 3f, -148f), new Vector3(120f, 8f, 6f));          // entering the residential zone
+            Move("Obj2_SecurityDoor", new Vector3(0f, 1.5f, 8f), new Vector3(4f, 3f, 4f));     // inside the Genesis access corridor
+            Move("Obj3_ResearchRoom", new Vector3(0f, 1.5f, -10f), new Vector3(16f, 3f, 4f));  // back outside, in front of the bunker
+            Move("Obj7_Extraction", new Vector3(-14f, 2f, -214f), new Vector3(12f, 4f, 12f)); // outpost helipad
+
+            // Security power: the alert terminal of the experiment room.
+            var powerGo = Object.FindObjectsByType<Transform>()
+                .FirstOrDefault(t => t.name == "Terminal" && Vector3.Distance(t.position, new Vector3(-17.2f, 0f, 47.2f)) < 0.5f);
+            if (powerGo == null) throw new MissingReferenceException("Experiment room terminal not found");
+            powerGo.name = "Terminal_Power";
+            var status = kit.Box(powerGo, "StatusLight", new Vector3(0f, 1.1f, 0.29f), new Vector3(0.8f, 0.05f, 0.02f), kit.M.StatusRed, collider: false);
+            var power = powerGo.gameObject.AddComponent<EclipseGenesis.World.Terminal>();
+            ProtoKit.SetRef(power, "statusLight", status.GetComponent<Renderer>());
+            ProtoKit.SetRef(power, "lockedMaterial", kit.M.StatusRed);
+            ProtoKit.SetRef(power, "readyMaterial", kit.M.StatusBlue);
+            ProtoKit.SetRef(power, "doneMaterial", ProtoKit.Glow("M_Terminal_Done", new Color(0.2f, 1f, 0.45f), 350f));
+            var so = new SerializedObject(power);
+            so.FindProperty("prompt").stringValue = "Restablecer energía de seguridad";
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var m = new SerializedObject(manager);
+            m.FindProperty("openZoneOperation").boolValue = true;
+            m.FindProperty("powerTerminal").objectReferenceValue = power;
+            m.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ------------------------------------------------------------------ navigation, actors, QA
@@ -466,11 +508,12 @@ namespace EclipseGenesis.EditorTools.OpenZone
 
             View("01_Deployment", new Vector3(0f, 1.68f, -212f), new Vector3(3f, 0f, 0f));
             View("02_TownStreet", new Vector3(-3f, 1.68f, -150f), new Vector3(2f, 6f, 0f));
-            View("03_HouseInterior", new Vector3(-14.5f, 1.6f, -58f), new Vector3(6f, 200f, 0f));
+            View("03_HouseInterior", new Vector3(-13.5f, 2.13f, -60.5f), new Vector3(8f, -25f, 0f));   // House_A ground floor (Blender model)
             View("04_Rooftop", new Vector3(-19f, 8.7f, -122f), new Vector3(6f, 60f, 0f));
             View("05_Infestation", new Vector3(-70f, 3f, -42f), new Vector3(6f, -95f, 0f));
             View("06_GenesisEntrance", new Vector3(4f, 1.68f, -32f), new Vector3(-3f, -6f, 0f));
             View("07_Aerial", new Vector3(80f, 70f, -230f), new Vector3(28f, -25f, 0f));
+            View("08_HouseFront", new Vector3(-1.5f, 1.68f, -66f), new Vector3(2f, -75f, 0f));
         }
 
         private static void BackupPreviousVersion()
