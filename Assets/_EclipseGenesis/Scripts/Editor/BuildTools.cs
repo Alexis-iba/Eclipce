@@ -34,6 +34,12 @@ namespace EclipseGenesis.EditorTools
             PlayerSettings.productName = "ECLIPSE GENESIS";
             PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
 
+            // D3D12 crashes the player while loading Genesis_Research_Facility (2026-10-12, driver 32.0.15.9636);
+            // D3D11 runs it correctly. Keep D3D11 first until the D3D12 crash is investigated (Docs/ROADMAP.md).
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64,
+                new[] { UnityEngine.Rendering.GraphicsDeviceType.Direct3D11, UnityEngine.Rendering.GraphicsDeviceType.Direct3D12 });
+
             var options = new BuildPlayerOptions
             {
                 scenes = scenes,

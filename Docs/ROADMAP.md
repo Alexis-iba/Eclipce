@@ -39,6 +39,22 @@ Leyenda: ✅ hecho y verificado · 🟡 implementado, falta verificación manual
 - ⏳ No hay prueba automática de las rampas (20° subible y 55° bloqueada) ni del sprint táctico agotándose a los 4 s.
 - ⏳ El apuntado real (clic derecho) llega con el arma en la Fase 3. Hoy solo existe el mecanismo de la cámara.
 
+## Mejora visual: Genesis_Research_Facility ✅ automático · 🟡 pendiente de tu recorrido (2026-10-12)
+La escena se genera con **Eclipse Genesis → Build → Genesis Research Facility** (`FacilitySceneBuilder`). Antes de generar, `EG_FPS_Test` se copia en `Scenes/Backups`. Es la primera escena del ejecutable.
+
+| Elemento | Estado verificado |
+|---|---|
+| 6 zonas a escala FPS: pasillo de acceso, armería, pasillo militar, laboratorio central, sala de experimentos alienígenas y zona de combate con coberturas | ✅ Capturas de las 6 vistas (`Logs/qa`). PlayMode: las 7 zonas son alcanzables por NavMesh desde el punto de inicio |
+| 7 puertas automáticas (5 interiores y 2 selladas con luz roja) | ✅ PlayMode: la puerta se abre del todo, el jugador entra en la armería y la puerta sellada nunca se abre |
+| Materiales PBR HDRP en la paleta pedida (grafito, gris metálico, acero, rojo oscuro, azul tecnológico) | ✅ EditMode: todos los renderers usan shaders HDRP. Texturas **procedurales y provisionales** |
+| Iluminación: focos de techo, balizas rojas, exposición fija EV 4,4, niebla volumétrica, SSAO, SSR, ACES, bloom ≤ 0,2, reflection probes | ✅ EditMode: presupuesto de 59 luces (17 con sombra) y perfil de postproceso completo. Se corrigió que estuviera demasiado oscuro (reflector de los focos desactivado y metal en superficies pintadas) |
+| Ambiente: humo local, chispas, alarmas con balizas, luces que parpadean, pantallas animadas y sonido ambiente | ✅ PlayMode: alarmas activas, las chispas disparan y hay luces con parpadeo |
+| Colisiones | ✅ EditMode: toda la arquitectura tiene collider. PlayMode: el jugador camina, esprinta y se desliza dentro del mapa |
+| Rendimiento | ✅ Medido en el ejecutable (RTX 4070 Laptop, 2560×1600, High Fidelity, DX11): **64–79 FPS** de media en el punto de inicio. ⚠️ Solo se midió en ese punto, no recorriendo el mapa |
+| **DirectX 12** | ❌ El ejecutable **se cierra con un crash al cargar la instalación en D3D12**. En D3D11 funciona. El build usa D3D11 como API principal hasta investigarlo |
+
+**Falta:** tu recorrido manual (sensación y legibilidad de la iluminación), medir el rendimiento recorriendo todo el mapa, investigar el crash en D3D12 y sustituir la geometría y las texturas provisionales (ver `ASSETS_REQUIRED.md`).
+
 ## FASE 3: Armas ⏳
 WeaponData (ScriptableObject), WeaponController, disparo por raycast, munición y recarga, ADS (`IsAiming`, FOV y sensibilidad), retroceso con `PlayerLook.AddRotation`, ranuras 1/2/3 y granada. Se empieza por el EG-47.
 ## FASE 4: Salud, escudo y daño ⏳
