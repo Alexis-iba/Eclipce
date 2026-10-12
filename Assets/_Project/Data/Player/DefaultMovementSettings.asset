@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75c9c597ded544e4d931367817ccfb9b, type: 3}
+  m_Name: DefaultMovementSettings
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Player.MovementSettings
+  walkSpeed: 2.4
+  runSpeed: 4.6
+  sprintSpeed: 6.6
+  tacticalSprintSpeed: 8.2
+  crouchSpeed: 2.2
+  walkInputThreshold: 0.5
+  groundAcceleration: 32
+  groundDeceleration: 26
+  airAcceleration: 7
+  sprintForwardThreshold: 0.6
+  tacticalDoubleTapWindow: 0.3
+  tacticalSprintDuration: 4
+  tacticalSprintRecharge: 6
+  jumpHeight: 1.15
+  gravity: -22
+  groundedStickVelocity: -2
+  coyoteTime: 0.12
+  jumpBuffer: 0.12
+  maxFallSpeed: -40
+  standingHeight: 1.8
+  crouchHeight: 1.15
+  slideHeight: 0.9
+  radius: 0.35
+  heightChangeSpeed: 9
+  stepOffset: 0.35
+  slopeLimit: 45
+  slideMinStartSpeed: 5.8
+  slideStartBoost: 9.2
+  slideFriction: 7.5
+  slideMaxDuration: 0.95
+  slideEndSpeed: 3
+  slideSlopeAcceleration: 10
+  slideSteering: 1.5
+  slideCooldown: 0.35
