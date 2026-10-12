@@ -5,10 +5,11 @@
 - No hay conexión MCP con Unity. El Editor se controla con `Unity.exe -batchmode` (`-executeMethod`, `-runTests`). Unity Hub tiene que estar abierto y con sesión iniciada. Si el proyecto está abierto en un Editor con interfaz, el batchmode no puede usarlo.
 - Lanza `Unity.exe` con `Start-Process -PassThru` y `WaitForExit(timeout)`, nunca con `-Wait`.
 - En las pruebas con `InputTestFixture`, envía **un evento de teclado por frame** (`yield return null` entre `Press` sucesivos). Dos `Press` en el mismo frame sobrescriben el estado del teclado.
+- Las pruebas PlayMode que cargan una escena deben descargarla en `[UnityTearDown]`; si no, su jugador y su geometría contaminan las pruebas siguientes.
 
 ## Estructura
 ```
-Assets/_Project/
+Assets/_EclipseGenesis/
   Scripts/            EclipseGenesis.Runtime.asmdef  (namespace EclipseGenesis.*)
     Player/           input, movimiento, cámara
     Core/             (reservado: GameManager, eventos, servicios)
@@ -27,7 +28,7 @@ Docs/                 GDD, arquitectura, controles, roadmap, assets pendientes
 - La entrada se lee **solo** a través de `PlayerInputReader`. Ningún sistema toca `InputAction` directamente.
 - Las referencias se asignan como campos `[SerializeField] private`. No uses `Find*` ni `GetComponent` en `Update`.
 - En código de Editor usa `TryGetComponent`, no `GetComponent() ?? AddComponent()` (por los "fake null" de Unity).
-- Las escenas y prefabs provisionales se **generan por código** (`SandboxSceneBuilder`) para que sean reproducibles. Si cambias el layout, cambia el generador.
+- Las escenas y prefabs provisionales se **generan por código** (`FpsTestSceneBuilder`) para que sean reproducibles. Si cambias el layout, cambia el generador.
 - Para los materiales HDRP creados por script: `HDMaterial.ValidateMaterial`. Para la emisión: `SetUseEmissiveIntensity(true)` antes de `SetEmissiveIntensity`.
 - Orden de ejecución: `PlayerInputReader` (-100) → `PlayerLook` (-80) → `PlayerMovement` (-50) → `PlayerCameraEffects` (100, LateUpdate).
 

@@ -15,7 +15,7 @@ namespace EclipseGenesis.Tests
         private static readonly string[] RequiredActions =
         {
             "Move", "Look", "Jump", "Sprint", "Crouch", "Fire", "Aim",
-            "Reload", "Interact", "SwitchWeapon", "Grenade", "Inspect", "Pause",
+            "Reload", "Interact", "SwitchWeapon", "Weapon1", "Weapon2", "Weapon3", "Grenade", "Inspect", "Pause",
         };
 
         [Test]
@@ -30,7 +30,7 @@ namespace EclipseGenesis.Tests
         [Test]
         public void InputActions_ContainAllPlayerActions_WithBindings()
         {
-            var asset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(SandboxSceneBuilder.InputActionsPath);
+            var asset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(FpsTestSceneBuilder.InputActionsPath);
             Assert.IsNotNull(asset);
             var map = asset.FindActionMap("Player", true);
             foreach (string name in RequiredActions)
@@ -45,8 +45,8 @@ namespace EclipseGenesis.Tests
         [Test]
         public void MovementSettings_AreCoherent()
         {
-            var s = AssetDatabase.LoadAssetAtPath<MovementSettings>(SandboxSceneBuilder.MovementSettingsPath);
-            Assert.IsNotNull(s, "run Eclipse Genesis/Build/Movement Sandbox first");
+            var s = AssetDatabase.LoadAssetAtPath<MovementSettings>(FpsTestSceneBuilder.MovementSettingsPath);
+            Assert.IsNotNull(s, "run Eclipse Genesis/Build/EG_FPS_Test first");
             Assert.Less(s.walkSpeed, s.runSpeed);
             Assert.Less(s.runSpeed, s.sprintSpeed);
             Assert.Less(s.sprintSpeed, s.tacticalSprintSpeed);
@@ -59,9 +59,11 @@ namespace EclipseGenesis.Tests
         [Test]
         public void PlayerPrefab_HasNoMissingReferences()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SandboxSceneBuilder.PlayerPrefabPath);
-            Assert.IsNotNull(prefab, "run Eclipse Genesis/Build/Movement Sandbox first");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(FpsTestSceneBuilder.PlayerPrefabPath);
+            Assert.IsNotNull(prefab, "run Eclipse Genesis/Build/EG_FPS_Test first");
+            Assert.AreEqual("EG_Player", prefab.name);
             Assert.IsNotNull(prefab.GetComponentInChildren<Camera>());
+            Assert.IsNotNull(prefab.GetComponentInChildren<Camera>().transform.Find("WeaponHolder"), "missing weapon mount point");
 
             foreach (var behaviour in prefab.GetComponentsInChildren<MonoBehaviour>(true))
             {
@@ -78,12 +80,28 @@ namespace EclipseGenesis.Tests
             }
         }
 
+        [TestCase("Crouch", "<Keyboard>/leftCtrl")]
+        [TestCase("Interact", "<Keyboard>/f")]
+        [TestCase("Weapon1", "<Keyboard>/1")]
+        [TestCase("Weapon2", "<Keyboard>/2")]
+        [TestCase("Weapon3", "<Keyboard>/3")]
+        [TestCase("Grenade", "<Keyboard>/g")]
+        [TestCase("Pause", "<Keyboard>/escape")]
+        [TestCase("Sprint", "<Keyboard>/leftShift")]
+        [TestCase("Reload", "<Keyboard>/r")]
+        public void ControlLayout_MatchesDesign(string action, string path)
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<InputActionAsset>(FpsTestSceneBuilder.InputActionsPath);
+            var a = asset.FindAction(action, true);
+            Assert.IsTrue(a.bindings.Any(b => b.path == path), $"{action} should be bound to {path}");
+        }
+
         [Test]
-        public void SandboxScene_IsFirstInBuildSettings()
+        public void FpsTestScene_IsFirstInBuildSettings()
         {
             var scenes = EditorBuildSettings.scenes;
             Assert.IsTrue(scenes.Length > 0);
-            Assert.AreEqual(SandboxSceneBuilder.ScenePath, scenes.First().path);
+            Assert.AreEqual(FpsTestSceneBuilder.ScenePath, scenes.First().path);
             Assert.IsTrue(scenes.All(s => System.IO.File.Exists(s.path)), "build settings reference a missing scene");
         }
     }

@@ -11,19 +11,19 @@ using UnityEngine.Rendering.HighDefinition;
 namespace EclipseGenesis.EditorTools
 {
     /// <summary>
-    /// Builds the provisional movement test scene and the FPS player prefab from code, so the setup is
-    /// reproducible from the command line: Unity -batchmode -executeMethod EclipseGenesis.EditorTools.SandboxSceneBuilder.BuildFromCommandLine
+    /// Builds the EG_FPS_Test scene (provisional geometry) and the FPS player prefab from code, so the setup is
+    /// reproducible from the command line: Unity -batchmode -executeMethod EclipseGenesis.EditorTools.FpsTestSceneBuilder.BuildFromCommandLine
     /// </summary>
-    public static class SandboxSceneBuilder
+    public static class FpsTestSceneBuilder
     {
-        public const string ScenePath = "Assets/_Project/Scenes/Sandbox_Movement.unity";
-        public const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/Player_FPS.prefab";
-        public const string MovementSettingsPath = "Assets/_Project/Data/Player/DefaultMovementSettings.asset";
-        public const string InputActionsPath = "Assets/_Project/Input/EclipseGenesisControls.inputactions";
-        private const string MaterialsFolder = "Assets/_Project/Materials/Prototype";
+        public const string ScenePath = "Assets/_EclipseGenesis/Scenes/EG_FPS_Test.unity";
+        public const string PlayerPrefabPath = "Assets/_EclipseGenesis/Prefabs/Player/EG_Player.prefab";
+        public const string MovementSettingsPath = "Assets/_EclipseGenesis/Data/Player/DefaultMovementSettings.asset";
+        public const string InputActionsPath = "Assets/_EclipseGenesis/Input/EclipseGenesisControls.inputactions";
+        private const string MaterialsFolder = "Assets/_EclipseGenesis/Materials/Prototype";
         private const string SkyProfilePath = "Assets/Settings/SkyandFogSettingsProfile.asset";
 
-        [MenuItem("Eclipse Genesis/Build/Movement Sandbox")]
+        [MenuItem("Eclipse Genesis/Build/EG_FPS_Test Scene")]
         public static void BuildFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -51,6 +51,7 @@ namespace EclipseGenesis.EditorTools
             BuildLayout(mats);
 
             var player = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            player.name = "EG_Player";
             player.transform.SetPositionAndRotation(new Vector3(0f, 0.05f, -20f), Quaternion.identity);
 
             EnsureFolder(Path.GetDirectoryName(ScenePath));
@@ -64,7 +65,7 @@ namespace EclipseGenesis.EditorTools
 
         private static GameObject BuildPlayerPrefab(MovementSettings settings, InputActionAsset actions)
         {
-            var root = new GameObject("Player_FPS");
+            var root = new GameObject("EG_Player");
             try
             {
                 root.tag = "Player";
@@ -97,6 +98,11 @@ namespace EclipseGenesis.EditorTools
                 camGo.AddComponent<HDAdditionalCameraData>();
                 camGo.AddComponent<AudioListener>();
 
+                // Mount point for first-person weapons (Phase 3). Empty on purpose: no fake weapon yet.
+                var weaponHolder = new GameObject("WeaponHolder").transform;
+                weaponHolder.SetParent(camGo.transform, false);
+                weaponHolder.localPosition = new Vector3(0.2f, -0.22f, 0.4f);
+
                 var look = root.AddComponent<PlayerLook>();
                 SetRef(look, "input", reader);
                 SetRef(look, "pitchPivot", eye);
@@ -109,6 +115,7 @@ namespace EclipseGenesis.EditorTools
 
                 var overlay = root.AddComponent<MovementDebugOverlay>();
                 SetRef(overlay, "movement", movement);
+                SetRef(overlay, "look", look);
                 SetRef(overlay, "targetCamera", cam);
 
                 EnsureFolder(Path.GetDirectoryName(PlayerPrefabPath));

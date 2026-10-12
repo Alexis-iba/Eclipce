@@ -1,25 +1,31 @@
 # Controles
 
-Asset: `Assets/_Project/Input/EclipseGenesisControls.inputactions`, mapa **Player**, esquemas **Keyboard&Mouse** y **Gamepad**.
+Asset: `Assets/_EclipseGenesis/Input/EclipseGenesisControls.inputactions`, mapa **Player**, esquemas **Keyboard&Mouse** y **Gamepad**.
 
-| Acción | Teclado y ratón | Mando | Estado |
+| Tecla | Acción | Mando | Estado |
 |---|---|---|---|
-| Moverse | W A S D | Stick izquierdo | ✅ Implementado |
-| Mirar | Ratón | Stick derecho (220°/s) | ✅ Implementado |
-| Saltar | Espacio | A / Cruz | ✅ Implementado |
-| Sprint | Shift izquierdo (pulsar una vez) | L3 | ✅ Implementado |
-| Sprint táctico | Doble toque de Shift mientras esprintas | Doble L3 | ✅ Implementado |
-| Agacharse / levantarse | C o Ctrl izquierdo | B / Círculo | ✅ Implementado |
-| Deslizarse | Agacharse durante el sprint | B durante el sprint | ✅ Implementado |
-| Disparar | Clic izquierdo | RT / R2 | ⏳ Fase 3 |
-| Apuntar (ADS) | Clic derecho | LT / L2 | ⏳ Fase 3 |
-| Recargar | R | X / Cuadrado | ⏳ Fase 3 |
-| Cambiar de arma | Rueda del ratón | Y / Triángulo | ⏳ Fase 3 |
-| Lanzar granada | G | RB / R1 | ⏳ Fase 3 |
-| Inspeccionar arma | T | Cruceta abajo | ⏳ Fase 9 |
-| Interactuar | E | Cruceta arriba | ⏳ Fase 6 |
-| Pausa | Escape | Start | ⏳ Fase 7 |
-| Panel de depuración | F1 | — | ✅ Solo en la escena de pruebas |
+| W A S D | Movimiento | Stick izquierdo | ✅ Funcional |
+| Ratón | Cámara | Stick derecho (220°/s) | ✅ Funcional |
+| Shift izquierdo | Sprint (una pulsación lo activa) · doble toque = sprint táctico | L3 | ✅ Funcional |
+| Ctrl izquierdo (alternativa: C) | Agacharse / levantarse | B / Círculo | ✅ Funcional |
+| Ctrl durante el sprint | Deslizarse | B durante el sprint | ✅ Funcional |
+| Espacio | Saltar (estando agachado, se levanta) | A / Cruz | ✅ Funcional |
+| Clic izquierdo | Disparar | RT / R2 | ⏳ Asignada, sin sistema (Fase 3) |
+| Clic derecho | Apuntar | LT / L2 | ⏳ Asignada, sin sistema (Fase 3). La cámara ya se estabiliza cuando el arma active `IsAiming` |
+| R | Recargar | X / Cuadrado | ⏳ Asignada, sin sistema (Fase 3) |
+| 1 / 2 / 3 | Cambiar de arma (ranura directa) | Cruceta izquierda / derecha · LB | ⏳ Asignada, sin sistema (Fase 3) |
+| Rueda del ratón | Arma siguiente / anterior | Y / Triángulo | ⏳ Asignada, sin sistema (Fase 3) |
+| F | Interactuar | Cruceta arriba | ⏳ Asignada, sin sistema (Fase 6) |
+| G | Granada | RB / R1 | ⏳ Asignada, sin sistema (Fase 3) |
+| T | Inspeccionar el arma | Cruceta abajo | ⏳ Asignada, sin sistema (Fase 9) |
+| Escape | Pausa | Start | ⏳ Asignada, sin sistema (Fase 7) |
 
-Las acciones marcadas con ⏳ ya están definidas y enlazadas en el asset, pero ningún sistema las consume todavía.
-Mientras no exista el menú de pausa, en el Editor se libera el ratón con **Esc** (comportamiento estándar de la vista Game).
+Solo en la escena de pruebas `EG_FPS_Test`:
+
+| Tecla | Acción |
+|---|---|
+| F1 | Mostrar u ocultar el panel de depuración |
+| [ y ] | Bajar o subir la sensibilidad del ratón (de ×0,1 a ×5; se guarda en PlayerPrefs) |
+
+Las acciones ⏳ están definidas y asignadas en el asset, pero ningún sistema las consume todavía: no simulan nada.
+En el Editor, **Esc** libera el ratón (comportamiento estándar de la vista Game). En el ejecutable, mientras no exista el menú de pausa, el juego se cierra con **Alt+F4**.

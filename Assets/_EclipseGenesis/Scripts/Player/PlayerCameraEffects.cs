@@ -41,12 +41,17 @@ namespace EclipseGenesis.Player
         [SerializeField] private float slideRoll = 4f;
         [SerializeField] private float rollDamping = 8f;
 
+        [Header("Aiming")]
+        [Tooltip("Head bob and roll scale while aiming down sights, so the sight picture stays steady.")]
+        [Range(0f, 1f)] [SerializeField] private float aimMotionScale = 0.15f;
+
         private float _eyeHeight;
         private float _bobPhase;
         private float _bobWeight;
         private float _dip;
         private float _dipVelocity;
         private float _roll;
+        private float _aimBlend;
 
         /// <summary>FOV multiplier driven by aiming down sights (1 = hip fire).</summary>
         public float AimFovMultiplier { get; set; } = 1f;
@@ -83,6 +88,9 @@ namespace EclipseGenesis.Player
             _eyeHeight = Damp(_eyeHeight, movement.EyeHeight, eyeHeightDamping, dt);
             if (eyePivot != null) eyePivot.localPosition = new Vector3(0f, _eyeHeight, 0f);
 
+            _aimBlend = Damp(_aimBlend, movement.IsAiming ? 1f : 0f, 12f, dt);
+            float motionScale = Mathf.Lerp(1f, aimMotionScale, _aimBlend);
+
             UpdateBob(dt);
             UpdateDip(dt);
 
@@ -91,10 +99,10 @@ namespace EclipseGenesis.Player
 
             if (offsetPivot != null)
             {
-                float bobX = Mathf.Cos(_bobPhase) * bobHorizontal * _bobWeight;
-                float bobY = Mathf.Abs(Mathf.Sin(_bobPhase)) * bobVertical * _bobWeight;
+                float bobX = Mathf.Cos(_bobPhase) * bobHorizontal * _bobWeight * motionScale;
+                float bobY = Mathf.Abs(Mathf.Sin(_bobPhase)) * bobVertical * _bobWeight * motionScale;
                 offsetPivot.localPosition = new Vector3(bobX, bobY - _dip, 0f);
-                offsetPivot.localRotation = Quaternion.Euler(0f, 0f, _roll);
+                offsetPivot.localRotation = Quaternion.Euler(0f, 0f, _roll * motionScale);
             }
 
             if (targetCamera != null)

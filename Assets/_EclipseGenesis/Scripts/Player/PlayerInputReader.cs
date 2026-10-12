@@ -14,7 +14,7 @@ namespace EclipseGenesis.Player
 
         private InputActionMap _player;
         private InputAction _move, _look, _jump, _sprint, _crouch, _fire, _aim,
-            _reload, _interact, _switchWeapon, _grenade, _inspect, _pause;
+            _reload, _interact, _switchWeapon, _weapon1, _weapon2, _weapon3, _grenade, _inspect, _pause;
 
         public Vector2 Move => _move?.ReadValue<Vector2>() ?? Vector2.zero;
         public Vector2 Look => _look?.ReadValue<Vector2>() ?? Vector2.zero;
@@ -32,6 +32,8 @@ namespace EclipseGenesis.Player
         public bool ReloadPressed => Pressed(_reload);
         public bool InteractPressed => Pressed(_interact);
         public float SwitchWeapon => _switchWeapon?.ReadValue<float>() ?? 0f;
+        /// <summary>Direct weapon slot requested this frame (1-3), or 0 when none.</summary>
+        public int WeaponSlotPressed => Pressed(_weapon1) ? 1 : Pressed(_weapon2) ? 2 : Pressed(_weapon3) ? 3 : 0;
         public bool GrenadePressed => Pressed(_grenade);
         public bool InspectPressed => Pressed(_inspect);
         public bool PausePressed => Pressed(_pause);
@@ -72,6 +74,9 @@ namespace EclipseGenesis.Player
             _reload = _player.FindAction("Reload", true);
             _interact = _player.FindAction("Interact", true);
             _switchWeapon = _player.FindAction("SwitchWeapon", true);
+            _weapon1 = _player.FindAction("Weapon1", true);
+            _weapon2 = _player.FindAction("Weapon2", true);
+            _weapon3 = _player.FindAction("Weapon3", true);
             _grenade = _player.FindAction("Grenade", true);
             _inspect = _player.FindAction("Inspect", true);
             _pause = _player.FindAction("Pause", true);

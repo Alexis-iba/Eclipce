@@ -132,7 +132,8 @@ namespace EclipseGenesis.Player
 
         private void UpdateSprint(Vector2 move, bool grounded, float dt)
         {
-            if (input.SprintPressed)
+            // Sprint can only be engaged on the ground; an active sprint carries through a jump.
+            if (input.SprintPressed && grounded)
             {
                 bool doubleTap = Time.time - _lastSprintPressTime <= settings.tacticalDoubleTapWindow;
                 if (_sprintLatched && doubleTap && _tacticalRemaining > 0f) _tactical = true;

@@ -3,7 +3,7 @@
 ## Ensamblados
 | Ensamblado | Contenido | Depende de |
 |---|---|---|
-| `EclipseGenesis.Runtime` | Todo el código de juego (`Assets/_Project/Scripts`) | Unity.InputSystem |
+| `EclipseGenesis.Runtime` | Todo el código de juego (`Assets/_EclipseGenesis/Scripts`) | Unity.InputSystem |
 | `EclipseGenesis.Editor` | Generadores de escenas y herramientas de QA (solo Editor) | Runtime, Input System, RP Core, HDRP |
 | `EclipseGenesis.Tests.EditMode` | Validación estática del proyecto y sus assets | Runtime, Editor |
 | `EclipseGenesis.Tests.PlayMode` | Pruebas de comportamiento con entrada simulada | Runtime, Unity.InputSystem.TestFramework |
@@ -13,7 +13,7 @@ Las dependencias van en un solo sentido: Editor y Tests dependen de Runtime, nun
 ## Jugador (implementado)
 
 ```
-Player_FPS (prefab)
+EG_Player (prefab)
 ├─ CharacterController
 ├─ PlayerInputReader      (-100) única puerta al InputActionAsset → expone la intención (Move, Look, SprintPressed…)
 ├─ PlayerLook             (-80)  yaw → cuerpo · pitch → CameraRoot · AddRotation() también lo usará el retroceso
@@ -23,7 +23,7 @@ Player_FPS (prefab)
 └─ CameraRoot             (pitch, altura de los ojos)
    └─ CameraOffset        (balanceo, caída al aterrizar, inclinación lateral)
       └─ MainCamera       (Camera, HDAdditionalCameraData, AudioListener)
-         └─ [Fase 3] WeaponHolder / brazos en primera persona
+         └─ WeaponHolder      (punto de sujeción del arma; vacío hasta la Fase 3)
 ```
 
 **Flujo de datos:** `InputActionAsset → PlayerInputReader → {PlayerLook, PlayerMovement} → eventos (Landed, Jumped, SlideStarted/Ended) → PlayerCameraEffects`.

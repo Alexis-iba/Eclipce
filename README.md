@@ -17,11 +17,11 @@ Estado actual: **Fase 2 en curso**. El controlador FPS está jugable en una esce
 
 1. En Unity Hub, pulsa **Add → Add project from disk** y elige `C:\Users\ibarr\EclipseGenesis`.
 2. Abre el proyecto con 6000.4.8f1. La primera importación tarda varios minutos porque compila los shaders de HDRP.
-3. Abre `Assets/_Project/Scenes/Sandbox_Movement.unity` y pulsa **Play**.
+3. Abre `Assets/_EclipseGenesis/Scenes/EG_FPS_Test.unity` y pulsa **Play**.
 4. Haz clic en la vista Game para capturar el ratón. Controles en [Docs/CONTROLS.md](Docs/CONTROLS.md).
 5. **F1** muestra u oculta el panel de depuración (estado, velocidad, altura, FOV, FPS).
 
-Para regenerar la escena y el prefab del jugador desde código usa el menú **Eclipse Genesis → Build → Movement Sandbox**.
+Para regenerar la escena y el prefab del jugador desde código usa el menú **Eclipse Genesis → Build → EG_FPS_Test Scene**.
 
 ## Línea de comandos (sin abrir el Editor)
 
@@ -32,7 +32,7 @@ $unity = "C:\Program Files\Unity\Hub\Editor\6000.4.8f1\Editor\Unity.exe"
 $proj  = "C:\Users\ibarr\EclipseGenesis"
 
 # Compilar y regenerar escena + prefab
-& $unity -batchmode -nographics -projectPath $proj -executeMethod EclipseGenesis.EditorTools.SandboxSceneBuilder.BuildFromCommandLine -logFile "$proj\Logs\build-sandbox.log"
+& $unity -batchmode -nographics -projectPath $proj -executeMethod EclipseGenesis.EditorTools.FpsTestSceneBuilder.BuildFromCommandLine -logFile "$proj\Logs\build-sandbox.log"
 
 # Pruebas (EditMode y PlayMode)
 & $unity -batchmode -nographics -projectPath $proj -runTests -testPlatform EditMode -assemblyNames EclipseGenesis.Tests.EditMode -testResults "$proj\Logs\tests-EditMode.xml"

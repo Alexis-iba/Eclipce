@@ -20,10 +20,13 @@ namespace EclipseGenesis.Tests
         private PlayerMovement _movement;
         private PlayerLook _look;
         private MovementSettings _settings;
+        private float _savedSensitivity;
 
         public override void Setup()
         {
             base.Setup();
+            _savedSensitivity = PlayerPrefs.GetFloat(PlayerLook.SensitivityPrefKey, 1f);
+            PlayerPrefs.SetFloat(PlayerLook.SensitivityPrefKey, 1f);
             _keyboard = InputSystem.AddDevice<Keyboard>();
             _mouse = InputSystem.AddDevice<Mouse>();
             _world = new GameObject("TestWorld");
@@ -33,6 +36,7 @@ namespace EclipseGenesis.Tests
         public override void TearDown()
         {
             PlayerLook.SetCursorLocked(false);
+            PlayerPrefs.SetFloat(PlayerLook.SensitivityPrefKey, _savedSensitivity);
             Object.Destroy(_world);
             if (_movement != null) Object.Destroy(_movement.gameObject);
             if (_settings != null) Object.Destroy(_settings);
@@ -107,9 +111,9 @@ namespace EclipseGenesis.Tests
             SpawnPlayer(Vector3.zero);
             yield return Seconds(0.3f);
 
-            Press(_keyboard.cKey);
+            Press(_keyboard.leftCtrlKey);
             yield return null;
-            Release(_keyboard.cKey);
+            Release(_keyboard.leftCtrlKey);
             yield return Seconds(0.6f);
             Assert.IsTrue(_movement.IsCrouching);
             Assert.That(_movement.CurrentHeight, Is.EqualTo(_settings.crouchHeight).Within(0.02f));
@@ -118,9 +122,9 @@ namespace EclipseGenesis.Tests
             Box("LowCeiling", new Vector3(0f, 1.5f, 0f), new Vector3(4f, 0.4f, 4f));
             yield return null;
 
-            Press(_keyboard.cKey);
+            Press(_keyboard.leftCtrlKey);
             yield return null;
-            Release(_keyboard.cKey);
+            Release(_keyboard.leftCtrlKey);
             yield return Seconds(0.4f);
             Assert.IsTrue(_movement.IsCrouching, "must stay crouched when there is no headroom");
             Assert.Less(_movement.CurrentHeight, 1.3f);
@@ -142,9 +146,9 @@ namespace EclipseGenesis.Tests
 
             bool slideStarted = false;
             _movement.SlideStarted += () => slideStarted = true;
-            Press(_keyboard.cKey);
+            Press(_keyboard.leftCtrlKey);
             yield return null;
-            Release(_keyboard.cKey);
+            Release(_keyboard.leftCtrlKey);
             yield return Seconds(0.15f);
 
             Assert.IsTrue(slideStarted);
@@ -236,12 +240,46 @@ namespace EclipseGenesis.Tests
             Assert.That(_look.Pitch, Is.EqualTo(-85f).Within(0.01f), "looking up must clamp at the limit");
         }
 
+        [UnityTest]
+        public IEnumerator Sprint_CannotStartInTheAir()
+        {
+            SpawnPlayer(Vector3.zero);
+            yield return Seconds(0.3f);
+
+            Press(_keyboard.wKey);
+            yield return Seconds(0.3f);
+            Press(_keyboard.spaceKey);
+            yield return Seconds(0.1f);
+            Assert.IsFalse(_movement.IsGrounded);
+
+            Press(_keyboard.leftShiftKey);
+            yield return Seconds(0.1f);
+            Assert.IsFalse(_movement.IsSprinting, "sprint must not engage mid-air");
+            Assert.LessOrEqual(_movement.HorizontalSpeed, _settings.runSpeed + 0.05f);
+        }
+
+        [UnityTest]
+        public IEnumerator SensitivitySetting_ScalesMouseLook()
+        {
+            SpawnPlayer(Vector3.zero);
+            yield return null;
+            _look.SensitivityMultiplier = 0.5f;
+
+            float yaw0 = _movement.transform.eulerAngles.y;
+            Set(_mouse.delta, new Vector2(500f, 0f));
+            yield return null;
+            Set(_mouse.delta, Vector2.zero);
+            yield return null;
+            Assert.That(Mathf.DeltaAngle(yaw0, _movement.transform.eulerAngles.y), Is.EqualTo(20f).Within(0.5f));
+            Assert.AreEqual(0.5f, PlayerPrefs.GetFloat(PlayerLook.SensitivityPrefKey), 1e-4f, "sensitivity must persist");
+        }
+
         // ------------------------------------------------------------------ helpers
 
         private void SpawnPlayer(Vector3 position)
         {
             _settings = ScriptableObject.CreateInstance<MovementSettings>();
-            string json = File.ReadAllText(Path.Combine(Application.dataPath, "_Project/Input/EclipseGenesisControls.inputactions"));
+            string json = File.ReadAllText(Path.Combine(Application.dataPath, "_EclipseGenesis/Input/EclipseGenesisControls.inputactions"));
 
             var go = new GameObject("TestPlayer");
             go.SetActive(false);

@@ -13,7 +13,7 @@ namespace EclipseGenesis.EditorTools
     {
         public static void CaptureFromCommandLine()
         {
-            string scene = Arg("-captureScene", SandboxSceneBuilder.ScenePath);
+            string scene = Arg("-captureScene", FpsTestSceneBuilder.ScenePath);
             string output = Arg("-captureOut", "Logs/capture.png");
             int code = Capture(scene, output, 1600, 900) ? 0 : 1;
             EditorApplication.Exit(code);

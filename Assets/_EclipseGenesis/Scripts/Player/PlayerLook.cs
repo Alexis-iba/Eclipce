@@ -25,11 +25,24 @@ namespace EclipseGenesis.Player
 
         [SerializeField] private bool lockCursorOnEnable = true;
 
+        public const string SensitivityPrefKey = "eg.look.sensitivity";
+        public const float MinSensitivity = 0.1f;
+        public const float MaxSensitivity = 5f;
+
         private float _pitch;
         private float _yaw;
+        private float _sensitivityMultiplier = 1f;
 
-        /// <summary>User preference multiplier (settings menu).</summary>
-        public float SensitivityMultiplier { get; set; } = 1f;
+        /// <summary>User preference multiplier (settings), persisted in PlayerPrefs.</summary>
+        public float SensitivityMultiplier
+        {
+            get => _sensitivityMultiplier;
+            set
+            {
+                _sensitivityMultiplier = Mathf.Clamp(value, MinSensitivity, MaxSensitivity);
+                PlayerPrefs.SetFloat(SensitivityPrefKey, _sensitivityMultiplier);
+            }
+        }
 
         /// <summary>Temporary multiplier (e.g. aiming down sights).</summary>
         public float ContextMultiplier { get; set; } = 1f;
@@ -43,6 +56,7 @@ namespace EclipseGenesis.Player
         private void Awake()
         {
             if (input == null) TryGetComponent(out input);
+            _sensitivityMultiplier = Mathf.Clamp(PlayerPrefs.GetFloat(SensitivityPrefKey, 1f), MinSensitivity, MaxSensitivity);
             _yaw = transform.eulerAngles.y;
             if (pitchPivot != null) _pitch = NormalizeAngle(pitchPivot.localEulerAngles.x);
         }
