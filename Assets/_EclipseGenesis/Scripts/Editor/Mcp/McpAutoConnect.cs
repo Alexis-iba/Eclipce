@@ -8,29 +8,56 @@ using UnityEngine;
 namespace EclipseGenesis.EditorTools.Mcp
 {
     /// <summary>
-    /// Connects the Editor to the local MCP for Unity HTTP server (127.0.0.1:8080) after every script reload,
-    /// doing exactly what the "Connect" button in Window > MCP for Unity does (Bridge.StartAsync).
-    /// Only acts when the server is already listening. Disable with the menu toggle below.
+    /// Keeps the Editor connected to MCP for Unity without manual clicks:
+    /// 1. Turns on the package's own "Auto-start on load" option (EditorPref MCPForUnity.AutoStartOnLoad), so
+    ///    every Editor launch starts the local HTTP server (127.0.0.1:8080) and connects.
+    /// 2. Safety net: a few seconds after each script reload, if the bridge is still down but the server is
+    ///    listening, it does what the "Connect" button does (Bridge.StartAsync).
+    /// Toggle with Eclipse Genesis > MCP > Auto Connect.
     /// </summary>
     [InitializeOnLoad]
     public static class McpAutoConnect
     {
         private const string PrefKey = "EclipseGenesis.McpAutoConnect";
+        private const string PackageAutoStartKey = "MCPForUnity.AutoStartOnLoad";
         private const string MenuPath = "Eclipse Genesis/MCP/Auto Connect";
         private const string Host = "127.0.0.1";
         private const int Port = 8080;
+        private const double SafetyNetDelaySeconds = 15;
+
+        private static double _checkAt;
 
         static McpAutoConnect()
         {
             if (Application.isBatchMode || !EditorPrefs.GetBool(PrefKey, true)) return;
-            EditorApplication.delayCall += () => _ = TryConnectAsync();
+
+            if (!EditorPrefs.GetBool(PackageAutoStartKey, false))
+            {
+                EditorPrefs.SetBool(PackageAutoStartKey, true);
+                Debug.Log("[EclipseGenesis] Enabled MCP for Unity 'Auto-start on load' (server + connection start with the Editor).");
+            }
+
+            _checkAt = EditorApplication.timeSinceStartup + SafetyNetDelaySeconds;
+            EditorApplication.update += SafetyNet;
+        }
+
+        private static void SafetyNet()
+        {
+            if (EditorApplication.timeSinceStartup < _checkAt) return;
+            EditorApplication.update -= SafetyNet;
+            _ = TryConnectAsync(force: false);
         }
 
         [MenuItem("Eclipse Genesis/MCP/Connect Now")]
         public static void ConnectNow() => _ = TryConnectAsync(force: true);
 
         [MenuItem(MenuPath)]
-        private static void Toggle() => EditorPrefs.SetBool(PrefKey, !EditorPrefs.GetBool(PrefKey, true));
+        private static void Toggle()
+        {
+            bool enabled = !EditorPrefs.GetBool(PrefKey, true);
+            EditorPrefs.SetBool(PrefKey, enabled);
+            EditorPrefs.SetBool(PackageAutoStartKey, enabled);
+        }
 
         [MenuItem(MenuPath, true)]
         private static bool ToggleValidate()
@@ -39,7 +66,7 @@ namespace EclipseGenesis.EditorTools.Mcp
             return true;
         }
 
-        private static async Task TryConnectAsync(bool force = false)
+        private static async Task TryConnectAsync(bool force)
         {
             try
             {
@@ -58,7 +85,7 @@ namespace EclipseGenesis.EditorTools.Mcp
                 bool started = await bridge.StartAsync();
                 Debug.Log(started
                     ? $"[EclipseGenesis] MCP bridge connected to http://{Host}:{Port}"
-                    : "[EclipseGenesis] MCP bridge failed to start (see MCP for Unity window).");
+                    : "[EclipseGenesis] MCP bridge failed to start (see Window > MCP for Unity).");
             }
             catch (Exception e)
             {
@@ -71,8 +98,7 @@ namespace EclipseGenesis.EditorTools.Mcp
             try
             {
                 using var client = new TcpClient();
-                var connect = client.ConnectAsync(Host, Port);
-                return connect.Wait(300) && client.Connected;
+                return client.ConnectAsync(Host, Port).Wait(300) && client.Connected;
             }
             catch
             {
