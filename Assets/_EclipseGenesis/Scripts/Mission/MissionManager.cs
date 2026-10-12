@@ -19,6 +19,9 @@ namespace EclipseGenesis.Mission
     {
         public const string MissionName = "OPERACIÓN PRIMER CONTACTO";
 
+        [SerializeField] private bool openZoneOperation;
+        [SerializeField] private Terminal powerTerminal;
+        [SerializeField] private GameObject defenseWave;
         [SerializeField] private PlayerHealth player;
         [SerializeField] private TriggerVolume labVolume;
         [SerializeField] private TriggerVolume securityDoorVolume;
@@ -60,8 +63,8 @@ namespace EclipseGenesis.Mission
             {
                 if (State == MissionState.Victory) return "Misión completada";
                 if (State == MissionState.Defeat) return "Misión fallida";
-                string text = _objectives[ObjectiveIndex];
-                return ObjectiveIndex == 3 ? $"{text} ({_killed}/{aliens.Length})" : text;
+                string text = (openZoneOperation ? _openObjectives : _objectives)[ObjectiveIndex];
+                return ObjectiveIndex == (openZoneOperation ? 4 : 3) ? $"{text} ({_killed}/{aliens.Length})" : text;
             }
         }
 
@@ -79,6 +82,7 @@ namespace EclipseGenesis.Mission
         private void Start()
         {
             _startTime = Time.time;
+            if (openZoneOperation) { StartOpenZone(); return; }
             if (labVolume != null) labVolume.Entered += () => Complete(0);
             if (securityDoorVolume != null) securityDoorVolume.Entered += () => Complete(1);
             if (researchRoomVolume != null) researchRoomVolume.Entered += () => Complete(2);
@@ -104,6 +108,7 @@ namespace EclipseGenesis.Mission
         public void Complete(int index)
         {
             if (State != MissionState.InProgress || index != ObjectiveIndex) return;
+            if (openZoneOperation) { CompleteOpenZone(index); return; }
 
             switch (index)
             {
@@ -129,12 +134,57 @@ namespace EclipseGenesis.Mission
             ObjectiveChanged?.Invoke(ObjectiveIndex, CurrentObjective);
         }
 
+        private readonly List<string> _openObjectives = new List<string>
+        {
+            "Avanza por la zona residencial",
+            "Ingresa en la instalación Genesis",
+            "Recupera los datos de la terminal",
+            "Restablece la energía de seguridad",
+            "Repele el contraataque alienígena",
+            "Regresa al exterior",
+            "Llega al punto de extracción"
+        };
+
+        private void StartOpenZone()
+        {
+            if (labVolume != null) labVolume.Entered += () => Complete(0);
+            if (securityDoorVolume != null) securityDoorVolume.Entered += () => Complete(1);
+            if (researchRoomVolume != null) researchRoomVolume.Entered += () => Complete(5);
+            if (extractionVolume != null) extractionVolume.Entered += () => Complete(6);
+            if (emergencyTerminal != null) { emergencyTerminal.SetAvailable(false); emergencyTerminal.OnActivated += _ => Complete(2); }
+            if (powerTerminal != null) { powerTerminal.SetAvailable(false); powerTerminal.OnActivated += _ => Complete(3); }
+            if (securityDoor != null) securityDoor.SetLocked(false);
+            if (exitDoor != null) exitDoor.SetLocked(true);
+            if (roomAlarm != null) roomAlarm.SetAlarm(false);
+            if (defenseWave != null) defenseWave.SetActive(false);
+            foreach (var a in aliens) if (a != null) a.Died += OnAlienDied;
+            if (player != null) player.Died += OnPlayerDied;
+            ObjectiveChanged?.Invoke(ObjectiveIndex, CurrentObjective);
+        }
+
+        private void CompleteOpenZone(int index)
+        {
+            if (index == 6) { Finish(MissionState.Victory); return; }
+            ObjectiveIndex++;
+            if (ObjectiveIndex == 2 && emergencyTerminal != null) emergencyTerminal.SetAvailable(true);
+            if (ObjectiveIndex == 3 && powerTerminal != null) powerTerminal.SetAvailable(true);
+            if (ObjectiveIndex == 4) {
+                if (roomAlarm != null) roomAlarm.SetAlarm(true);
+                if (defenseWave != null) defenseWave.SetActive(true);
+                if (_killed >= aliens.Length) { Complete(4); return; }
+            }
+            if (ObjectiveIndex == 5) {
+                if (exitDoor != null) exitDoor.SetLocked(false);
+                if (roomAlarm != null) roomAlarm.SetAlarm(false);
+            }
+            ObjectiveChanged?.Invoke(ObjectiveIndex, CurrentObjective);
+        }
         private void OnAlienDied(AlienHealth alien)
         {
             _killed++;
-            if (ObjectiveIndex == 3)
+            if (ObjectiveIndex == (openZoneOperation ? 4 : 3))
             {
-                if (_killed >= aliens.Length) Complete(3);
+                if (_killed >= aliens.Length) Complete(openZoneOperation ? 4 : 3);
                 else ObjectiveChanged?.Invoke(ObjectiveIndex, CurrentObjective);
             }
         }
@@ -150,6 +200,15 @@ namespace EclipseGenesis.Mission
             PlayerLook.SetCursorLocked(false);
             ObjectiveChanged?.Invoke(ObjectiveIndex, CurrentObjective);
             Ended?.Invoke(result);
+        }
+
+        public bool IsOpenZone => openZoneOperation;
+        public void ResumeOpenZoneCheckpoint()
+        {
+            if (!openZoneOperation || State != MissionState.InProgress) return;
+            ObjectiveIndex = 2;
+            if (emergencyTerminal != null) emergencyTerminal.SetAvailable(true);
+            ObjectiveChanged?.Invoke(ObjectiveIndex, CurrentObjective);
         }
 
         public void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex >= 0
