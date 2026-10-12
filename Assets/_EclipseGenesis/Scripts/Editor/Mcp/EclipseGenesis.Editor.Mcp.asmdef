@@ -1,0 +1,26 @@
+{
+    "name": "EclipseGenesis.Editor.Mcp",
+    "rootNamespace": "EclipseGenesis.EditorTools.Mcp",
+    "references": [
+        "MCPForUnity.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "EG_UNITY_MCP"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.coplaydev.unity-mcp",
+            "expression": "10.0.0",
+            "define": "EG_UNITY_MCP"
+        }
+    ],
+    "noEngineReferences": false
+}
