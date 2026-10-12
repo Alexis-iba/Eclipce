@@ -36,3 +36,28 @@ Toda la geometría de la escena es **provisional**: cajas y cilindros con UVs en
 | Baja | Decals: suciedad, quemaduras, fluidos alienígenas, señalética y numeración de zonas | 3 decals procedurales | Atlas de decals con normal y máscara |
 
 Las fuentes candidatas (Unity Asset Store gratuito, Mixamo para pruebas de rig, librerías CC0) se propondrán antes de importar nada.
+
+## Mapa abierto (Genesis_Outpost): assets reales integrados (2026-10-12)
+
+Descarga autorizada de **Poly Haven (CC0)**: 1 HDRI, 14 materiales escaneados y 18 modelos, unos 732 MB, en `Art/Imported/{Textures,Sky,Environment/PolyHaven,Props/PolyHaven,Vegetation/PolyHaven}`. Los binarios **no están en Git**: solo sus `.meta`, para que los GUID coincidan. Para recuperarlos, ejecuta `ArtSource/PolyHaven/download_polyhaven.ps1` y después **Eclipse Genesis → Art → Build Poly Haven Materials**.
+
+| Asset | Origen | Estado |
+|---|---|---|
+| Casa de madera de dos plantas `SM_House_A` (escalera, tabiques, porche, huecos reales) | Blender, `ArtSource/Blender/Environment/house_builder.py` | ✅ En el mapa, amueblada con muebles de Poly Haven |
+| Pinos `SM_Pine_A/B/C` (200–350 caras, tarjetas con la textura de ramas de Poly Haven) | Blender, `nature_builder.py` | ✅ 160 en el mapa |
+| Rocas y tronco (`SM_Rock_Boulder`, `SM_Rock_MossSet`, `SM_Log_Dead`) | Escaneos de Poly Haven reducidos en Blender (los originales tienen 60k–156k triángulos) | ✅ |
+| Suelos del terreno (hierba, barro, roca, grava) | Poly Haven | ✅ Capas `TL_PH_*` |
+| Barriles, neumáticos, bombonas | Poly Haven | ✅ |
+| `fir_tree_01` original | Poly Haven | ❌ No se usa: 2–4 millones de triángulos por árbol |
+
+**Falta para igualar el concept art** (sin modelo todavía):
+
+| Prioridad | Asset | Notas |
+|---|---|---|
+| Alta | EG-47 detallado (mira tipo holográfica, raíl, cargador, culata) | Se modelará en Blender y se conectará con `WeaponModelBinder` |
+| Alta | Stalker, Ravager y Spitter con rig y animaciones | Generación con IA 3D (Hyper3D Rodin / Hunyuan3D): requiere tu clave de API |
+| Alta | Base Genesis iluminada de noche: cúpula con haz de luz y depósitos de agua | Modelado en Blender |
+| Alta | Nave alienígena estrellada, helicóptero, coches quemados reales | Blender o IA 3D |
+| Media | Variantes de casa (dañada, quemada, otros colores) | `house_builder.py` admite variantes |
+| Media | Fuego y humo (VFX) | VFX Graph no está instalado |
+| Media | Granadas (el HUD ya muestra los huecos) | Sistema de juego pendiente |

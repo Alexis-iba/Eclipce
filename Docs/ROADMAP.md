@@ -85,6 +85,18 @@ Todo se regenera con **Eclipse Genesis → Build → Everything** (`FullBuild`).
 - Medir el rendimiento con combate en toda la misión: el registro muestra unos 43–48 FPS de media a 2560×1600 en High Fidelity durante los primeros segundos, que incluyen la compilación de shaders.
 - Investigar el crash en D3D12.
 
+## Transformación hacia el concept art (mapa abierto, Blender + Poly Haven) 🟡 en curso (2026-10-12)
+
+**Hecho y verificado** (compilación limpia, capturas QA en `Logs/qa/`, EditMode 26/26, PlayMode 32 superados + 2 omitidos + 1 fallo intermitente de salto que pasa al repetirlo solo):
+- HUD rediseñado según la imagen: radar con brújula, rumbo y distancia al objetivo; lista completa de "Operación Primer Contacto"; escudo por placas; tarjeta de arma con silueta y huecos de granada.
+- `Genesis_Outpost` (Build → Genesis Outpost): casas de madera de Blender amuebladas, pinos, rocas, suelos escaneados, montañas de fondo y atardecer bajo detrás de la base Genesis. La operación del mapa abierto está conectada: zona residencial → base → terminal de datos → energía → Stalkers → salida → extracción en el helipuerto.
+- Corregido un error de terreno: `Mathf.SmoothStep` se usaba como un smoothstep de GLSL y el mapa salía plano.
+
+**Pendiente:** EG-47 en Blender, aliens con IA 3D (clave de API), cúpula con haz y depósitos de agua, nave estrellada, helicóptero, fuego, coches quemados reales, granadas. También:
+- Hacer de `Genesis_Outpost` la escena inicial: ahora lo es `Eclipse_OpenZone`, de Codex.
+- Tu partida en el mapa abierto.
+- Revisar `ProceduralTextures`: usa `Mathf.SmoothStep` igual que el terreno, pero define el aspecto ya validado de la instalación.
+
 ## FASE 6: Laboratorio jugable ✅ (cubierto por Genesis_Research_Facility y la sala de investigación)
 ## FASE 7: Menú de pausa y configuración ⏳ (el HUD ya está hecho)
 ## FASE 8: Checkpoints ⏳ (la misión ya está hecha)
