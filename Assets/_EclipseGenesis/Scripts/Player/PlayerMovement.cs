@@ -400,6 +400,13 @@ namespace EclipseGenesis.Player
             return v;
         }
 
+        /// <summary>Stops sprint and tactical sprint (firing, reloading).</summary>
+        public void CancelSprint()
+        {
+            _sprintLatched = false;
+            _tactical = false;
+        }
+
         /// <summary>Moves the player instantly (spawn, checkpoint respawn) and clears momentum.</summary>
         public void Teleport(Vector3 position, Quaternion rotation)
         {

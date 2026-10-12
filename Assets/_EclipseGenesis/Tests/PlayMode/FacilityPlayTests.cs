@@ -73,6 +73,18 @@ namespace EclipseGenesis.Tests
             var markers = Object.FindObjectsByType<Transform>().Where(t => t.name.StartsWith("Nav_")).ToArray();
             Assert.AreEqual(7, markers.Length);
             var path = new NavMeshPath();
+
+            // The mission keeps the research-room security door locked (carving the NavMesh) until it is located.
+            var securityDoor = Object.FindObjectsByType<AutoDoor>().Single(d => d.name == "Door_ToCombatZone");
+            Assert.IsTrue(securityDoor.IsLocked, "mission should start with the security door locked");
+            var combat = markers.First(m => m.name == "Nav_CombatZone");
+            yield return null;
+            Assert.IsTrue(NavMesh.SamplePosition(combat.position, out var lockedEnd, 1.5f, NavMesh.AllAreas));
+            NavMesh.CalculatePath(start.position, lockedEnd.position, NavMesh.AllAreas, path);
+            Assert.AreNotEqual(NavMeshPathStatus.PathComplete, path.status, "a locked door must block navigation");
+
+            securityDoor.SetLocked(false);
+            yield return Seconds(0.5f);
             foreach (var m in markers)
             {
                 Assert.IsTrue(NavMesh.SamplePosition(m.position, out var end, 1.5f, NavMesh.AllAreas), $"{m.name} is off the NavMesh");

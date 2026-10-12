@@ -373,6 +373,7 @@ namespace EclipseGenesis.EditorTools.Facility
             FloorStripe(g, new Vector3(0f, 0f, depth * 0.5f + 0.35f), new Vector3(clear, 0f, 0.5f));
             FloorStripe(g, new Vector3(0f, 0f, -depth * 0.5f - 0.35f), new Vector3(clear, 0f, 0.5f));
 
+            var obstacles = new List<UnityEngine.AI.NavMeshObstacle>();
             var left = Group(g, "Leaf_L");
             left.localPosition = new Vector3(-clear * 0.25f, 0f, 0f);
             var right = Group(g, "Leaf_R");
@@ -385,6 +386,17 @@ namespace EclipseGenesis.EditorTools.Facility
                 // Unlocked leaves move at runtime, so they are left out of the baked NavMesh; locked leaves stay in and block it.
                 var mod = panel.AddComponent<NavMeshModifier>();
                 mod.ignoreFromBuild = !locked;
+                if (!locked)
+                {
+                    // Doors that can be locked at runtime (mission) carve the NavMesh while locked.
+                    var obstacle = panel.AddComponent<UnityEngine.AI.NavMeshObstacle>();
+                    obstacle.shape = UnityEngine.AI.NavMeshObstacleShape.Box;
+                    obstacle.size = new Vector3(clear * 0.5f, height, 0.4f);
+                    obstacle.center = Vector3.zero;
+                    obstacle.carving = true;
+                    obstacle.carveOnlyStationary = false;
+                    obstacles.Add(obstacle);
+                }
             }
 
             var status = new List<Renderer>();
@@ -410,6 +422,9 @@ namespace EclipseGenesis.EditorTools.Facility
             so.FindProperty("audioSource").objectReferenceValue = audio;
             so.FindProperty("openClip").objectReferenceValue = _doorClip;
             so.FindProperty("lockedClip").objectReferenceValue = _deniedClip;
+            var op = so.FindProperty("obstacles");
+            op.arraySize = obstacles.Count;
+            for (int i = 0; i < obstacles.Count; i++) op.GetArrayElementAtIndex(i).objectReferenceValue = obstacles[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             return door;
         }
@@ -417,7 +432,7 @@ namespace EclipseGenesis.EditorTools.Facility
         // ------------------------------------------------------------------ props
 
         /// <summary>Desk terminal: pedestal, angled monitor with a scrolling emissive screen, keyboard.</summary>
-        public void Terminal(Transform parent, Vector3 pos, float yaw, bool alert)
+        public Transform Terminal(Transform parent, Vector3 pos, float yaw, bool alert)
         {
             var g = Group(parent, "Terminal");
             g.localPosition = pos;
@@ -430,6 +445,7 @@ namespace EclipseGenesis.EditorTools.Facility
             Box(mon, "Bezel", Vector3.zero, new Vector3(0.95f, 0.6f, 0.06f), M.Graphite_, collider: false);
             Screen(mon, new Vector3(0f, 0f, -0.032f), new Vector2(0.86f, 0.5f), alert);
             Box(g, "Keyboard", new Vector3(0f, 1.075f, -0.2f), new Vector3(0.6f, 0.025f, 0.2f), M.Graphite_, collider: false);
+            return g;
         }
 
         public void Screen(Transform parent, Vector3 localPos, Vector2 size, bool alert, float yaw = 0f)

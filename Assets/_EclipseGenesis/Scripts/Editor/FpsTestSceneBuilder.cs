@@ -43,8 +43,9 @@ namespace EclipseGenesis.EditorTools
             var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(InputActionsPath);
             if (actions == null) throw new FileNotFoundException("Input actions asset missing", InputActionsPath);
 
+            var weaponAssets = EclipseGenesis.EditorTools.Combat.WeaponBuilder.Build();
             var mats = new Materials();
-            GameObject prefab = BuildPlayerPrefab(settings, actions);
+            GameObject prefab = BuildPlayerPrefab(settings, actions, weaponAssets);
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             BuildLighting();
@@ -63,7 +64,7 @@ namespace EclipseGenesis.EditorTools
 
         // ------------------------------------------------------------------ player
 
-        private static GameObject BuildPlayerPrefab(MovementSettings settings, InputActionAsset actions)
+        private static GameObject BuildPlayerPrefab(MovementSettings settings, InputActionAsset actions, EclipseGenesis.EditorTools.Combat.WeaponBuilder.Assets weapon)
         {
             var root = new GameObject("EG_Player");
             try
@@ -98,10 +99,10 @@ namespace EclipseGenesis.EditorTools
                 camGo.AddComponent<HDAdditionalCameraData>();
                 camGo.AddComponent<AudioListener>();
 
-                // Mount point for first-person weapons (Phase 3). Empty on purpose: no fake weapon yet.
+                // Mount point for first-person weapons (the EG-47 viewmodel is instantiated here at runtime).
                 var weaponHolder = new GameObject("WeaponHolder").transform;
                 weaponHolder.SetParent(camGo.transform, false);
-                weaponHolder.localPosition = new Vector3(0.2f, -0.22f, 0.4f);
+                weaponHolder.localPosition = new Vector3(0.16f, -0.2f, 0.3f);
 
                 var look = root.AddComponent<PlayerLook>();
                 SetRef(look, "input", reader);
@@ -117,6 +118,46 @@ namespace EclipseGenesis.EditorTools
                 SetRef(overlay, "movement", movement);
                 SetRef(overlay, "look", look);
                 SetRef(overlay, "targetCamera", cam);
+                var overlaySo = new SerializedObject(overlay);
+                overlaySo.FindProperty("visible").boolValue = false; // F1 still toggles it; the HUD owns the screen
+                overlaySo.ApplyModifiedPropertiesWithoutUndo();
+
+                // ---------------- combat
+                var health = root.AddComponent<EclipseGenesis.Combat.PlayerHealth>();
+                var weaponAudio = root.AddComponent<AudioSource>();
+                weaponAudio.playOnAwake = false;
+                weaponAudio.spatialBlend = 0f;
+
+                var effects = root.AddComponent<EclipseGenesis.Weapons.WeaponEffects>();
+                SetRef(effects, "tracerMaterial", weapon.Tracer);
+                SetRef(effects, "sparkMaterial", weapon.Spark);
+                SetRef(effects, "alienBloodMaterial", weapon.AlienBlood);
+                SetRef(effects, "casingMesh", weapon.CasingMesh);
+                SetRef(effects, "casingMaterial", weapon.Casing);
+
+                var weapons = root.AddComponent<EclipseGenesis.Weapons.WeaponController>();
+                SetRef(weapons, "input", reader);
+                SetRef(weapons, "movement", movement);
+                SetRef(weapons, "look", look);
+                SetRef(weapons, "cameraEffects", fx);
+                SetRef(weapons, "health", health);
+                SetRef(weapons, "aimOrigin", camGo.transform);
+                SetRef(weapons, "weaponHolder", weaponHolder);
+                SetRef(weapons, "effects", effects);
+                SetRef(weapons, "audioSource", weaponAudio);
+                EclipseGenesis.EditorTools.Combat.ProtoKit.SetRefs(weapons, "loadout", new Object[] { weapon.Data });
+
+                var interaction = root.AddComponent<EclipseGenesis.World.PlayerInteraction>();
+                SetRef(interaction, "input", reader);
+                SetRef(interaction, "viewPoint", camGo.transform);
+
+                var hud = root.AddComponent<EclipseGenesis.UI.HUDController>();
+                SetRef(hud, "health", health);
+                SetRef(hud, "weapons", weapons);
+                SetRef(hud, "interaction", interaction);
+                SetRef(hud, "viewCamera", cam);
+                SetRef(hud, "uiAudio", weaponAudio);
+                SetRef(hud, "hitmarkerClip", EclipseGenesis.EditorTools.Facility.ProceduralAudioClips.Hitmarker());
 
                 EnsureFolder(Path.GetDirectoryName(PlayerPrefabPath));
                 return PrefabUtility.SaveAsPrefabAsset(root, PlayerPrefabPath);

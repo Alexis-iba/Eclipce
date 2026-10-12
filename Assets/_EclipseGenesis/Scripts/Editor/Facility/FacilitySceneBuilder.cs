@@ -34,6 +34,7 @@ namespace EclipseGenesis.EditorTools.Facility
         public static readonly RoomRect CentralLab = new RoomRect(-15f, 15f, 40f, 68f, 7f);
         public static readonly RoomRect ExperimentRoom = new RoomRect(-33f, -15f, 44f, 64f, 5f);
         public static readonly RoomRect CombatZone = new RoomRect(-18f, 18f, 68f, 104f, 8f);
+        public static readonly RoomRect ExitCorridor = new RoomRect(-10f, -6f, 104f, 114f, 3.2f);
 
         [MenuItem("Eclipse Genesis/Build/Genesis Research Facility")]
         public static void BuildFromMenu()
@@ -67,13 +68,15 @@ namespace EclipseGenesis.EditorTools.Facility
             BuildCentralLab(kit, world);
             BuildExperimentRoom(kit, world);
             BuildCombatZone(kit, world);
+            BuildExitCorridor(kit, world);
             BuildGlobalAmbience(kit, world);
 
             MarkStatic(world);
             BuildVolume();
             BuildNavigation(world);
             BuildQaMarkers();
-            SpawnPlayer();
+            var player = SpawnPlayer();
+            EclipseGenesis.EditorTools.Combat.MissionBuilder.Apply(kit, player);
             new GameObject("PerformanceLogger").AddComponent<PerformanceLogger>();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -371,7 +374,8 @@ namespace EclipseGenesis.EditorTools.Facility
             var cover = FacilityKit.Group(room, "Cover");
             var lights = FacilityKit.Group(room, "Lighting");
 
-            k.Door(room, "Door_ExtractionSealed", new Vector3(-8f, 0f, r.Z1 + 0.15f), 0f, locked: true, depth: 0.3f);
+            // Exit to extraction: locked in the build so the baked NavMesh treats it as a wall; the mission unlocks it.
+            k.Door(room, "Door_Exit", new Vector3(-8f, 0f, r.Z1), 0f, locked: true);
 
             foreach (float x in new[] { -9f, 9f })
             foreach (float z in new[] { 74f, 86f, 98f })
@@ -431,6 +435,20 @@ namespace EclipseGenesis.EditorTools.Facility
             for (float x = 5.2f; x < 17.6f; x += 2f) k.Box(plat, "RailPost", new Vector3(x, 2.5f, 96.75f), new Vector3(0.06f, 1.0f, 0.06f), k.M.SteelTrim, collider: false);
 
             k.Sparks(props, new Vector3(9.5f, 5f, 80f), Vector3.left);
+
+            // Research room dressing: specimen capsules, security displays and the emergency terminal.
+            var research = FacilityKit.Group(room, "Research");
+            foreach (var p in new[] { new Vector3(-16.6f, 0f, 75f), new Vector3(-16.6f, 0f, 84f), new Vector3(16.6f, 0f, 84f), new Vector3(16.6f, 0f, 90f) })
+            {
+                k.Tank(research, p, 0.75f, 2.8f, k.M.LiquidDim);
+                k.Point(lights, "CapsuleGlow", p + new Vector3(p.x < 0f ? 1.1f : -1.1f, 1.6f, 0f), 260f, 4.5f, new Color(0.3f, 1f, 0.8f));
+            }
+            k.WallScreen(research, new Vector3(-9f, 3.6f, r.Z0 + 0.06f), 0f, new Vector2(4f, 1.6f), alert: false);
+            k.WallScreen(research, new Vector3(9f, 3.6f, r.Z0 + 0.06f), 0f, new Vector2(4f, 1.6f), alert: true);
+            k.WallScreen(research, new Vector3(r.X1 - 0.06f, 3.2f, 76f), -90f, new Vector2(3f, 1.2f), alert: false);
+            var terminal = k.Terminal(research, new Vector3(-4.6f, 0f, 102.4f), 0f, alert: true);
+            terminal.name = "Terminal_Emergency";
+            k.Box(terminal, "StatusLight", new Vector3(0f, 1.1f, 0.29f), new Vector3(0.8f, 0.05f, 0.02f), k.M.StatusRed, collider: false);
             k.Smoke(props, new Vector3(-13.5f, 1.2f, 92f), new Vector3(6f, 2.4f, 8f), 8f, new Color(0.5f, 0.5f, 0.52f));
             for (int i = 0; i < 4; i++)
                 k.Decal(props, k.M.DecalScorch, new Vector3(k.Rand(-14f, 14f), 0f, k.Rand(72f, 100f)), Vector3.up, k.Rand(1.2f, 2.4f), k.Rand(0f, 360f));
@@ -439,6 +457,20 @@ namespace EclipseGenesis.EditorTools.Facility
             k.WallStrip(props, r, Side.West, 4.5f, k.M.StripRed, 2f);
             k.ReflectionProbe(room, r);
             k.Audio(room, "Amb_Hum", new Vector3(0f, 5f, 86f), ProceduralAudioClips.Hum(), 0.25f, 30f);
+        }
+
+        private static void BuildExitCorridor(FacilityKit k, Transform world)
+        {
+            var r = ExitCorridor;
+            var room = k.Room(world, "07_ExitCorridor", r, k.M.FloorPlate, k.M.WallUpper, k.M.WallLower, k.M.Ceiling, new Opening(Side.South, -8f));
+            var props = FacilityKit.Group(room, "Props");
+            var lights = FacilityKit.Group(room, "Lighting");
+            k.CeilingLight(lights, new Vector3(-8f, 0f, 107f), r.Height, 1400f, shadows: false);
+            k.CeilingLight(lights, new Vector3(-8f, 0f, 111.5f), r.Height, 1400f, shadows: true);
+            k.WallStrip(props, r, Side.East, 2.7f, k.M.StripBlue, 0.6f);
+            k.WallStrip(props, r, Side.West, 2.7f, k.M.StripBlue, 0.6f);
+            k.Box(props, "ExtractionPad", new Vector3(-8f, 0.01f, 111f), new Vector3(3f, 0.02f, 3f), k.M.StripBlue, collider: false);
+            k.Box(props, "ExtractionFrame", new Vector3(-8f, 0.005f, 111f), new Vector3(3.3f, 0.01f, 3.3f), k.M.Hazard, collider: false);
         }
 
         private static void BuildGlobalAmbience(FacilityKit k, Transform world)
@@ -586,13 +618,14 @@ namespace EclipseGenesis.EditorTools.Facility
             View("06_Combat", new Vector3(-2f, 1.68f, 70f), new Vector3(2f, 10f, 0f));
         }
 
-        private static void SpawnPlayer()
+        private static GameObject SpawnPlayer()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(FpsTestSceneBuilder.PlayerPrefabPath);
             if (prefab == null) throw new FileNotFoundException("Player prefab missing; build EG_FPS_Test first", FpsTestSceneBuilder.PlayerPrefabPath);
             var player = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             player.name = "EG_Player";
             player.transform.SetPositionAndRotation(SpawnPosition, Quaternion.identity);
+            return player;
         }
 
         /// <summary>Copies existing scenes to a dated backup before any rebuild.</summary>

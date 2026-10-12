@@ -3,6 +3,7 @@
     "rootNamespace": "EclipseGenesis.Tests",
     "references": [
         "EclipseGenesis.Runtime",
+        "Unity.AI.Navigation",
         "Unity.InputSystem",
         "Unity.InputSystem.TestFramework",
         "UnityEngine.TestRunner",

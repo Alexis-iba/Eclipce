@@ -43,6 +43,60 @@ namespace EclipseGenesis.EditorTools.Facility
             return 0.3f * beep * Mathf.Sign(Mathf.Sin(2f * Mathf.PI * 330f * t));
         }));
 
+        // ------------------------------------------------------------------ weapons
+
+        /// <summary>Rifle shot: sharp crack, low body thump and a short interior tail.</summary>
+        public static AudioClip RifleShot() => Get("Wpn_EG47_Shot", () => OneShot(0.65f, (t, rnd, s) =>
+        {
+            float crack = s.White(rnd) * Mathf.Exp(-t * 90f);
+            float body = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(140f, 55f, Mathf.Clamp01(t * 8f)) * t) * Mathf.Exp(-t * 22f);
+            float tail = s.Pink(rnd) * Mathf.Exp(-t * 7f) * 0.35f;
+            float mech = t > 0.03f && t < 0.045f ? s.White(rnd) * 0.4f : 0f;
+            return 1.1f * crack + 0.9f * body + tail + mech;
+        }));
+
+        public static AudioClip RifleReload() => Get("Wpn_EG47_Reload", () => OneShot(2.3f, (t, rnd, s) =>
+        {
+            float Click(float at, float decay, float freq) => t >= at ? Mathf.Sin(2f * Mathf.PI * freq * (t - at)) * Mathf.Exp(-(t - at) * decay) : 0f;
+            float slide = t > 0.45f && t < 0.75f ? s.Pink(rnd) * 0.25f : 0f;
+            float insert = t > 1.35f && t < 1.5f ? s.Pink(rnd) * 0.3f : 0f;
+            return 0.7f * Click(0.35f, 60f, 1800f) + slide + insert + 0.9f * Click(1.52f, 45f, 900f) + 0.8f * Click(1.95f, 50f, 1400f) + 0.7f * Click(2.05f, 55f, 700f);
+        }));
+
+        public static AudioClip DryFire() => Get("Wpn_DryFire", () => OneShot(0.15f, (t, rnd, s) =>
+            Mathf.Sin(2f * Mathf.PI * 2200f * t) * Mathf.Exp(-t * 80f) + 0.3f * s.White(rnd) * Mathf.Exp(-t * 120f)));
+
+        public static AudioClip Hitmarker() => Get("UI_Hitmarker", () => OneShot(0.08f, (t, rnd, s) =>
+            Mathf.Sin(2f * Mathf.PI * 3200f * t) * Mathf.Exp(-t * 70f)));
+
+        // ------------------------------------------------------------------ aliens
+
+        public static AudioClip AlienScreech() => Get("Alien_Stalker_Screech", () => OneShot(0.9f, (t, rnd, s) =>
+        {
+            float f = Mathf.Lerp(900f, 420f, t / 0.9f) + 60f * Mathf.Sin(2f * Mathf.PI * 28f * t);
+            float env = Mathf.Clamp01(t / 0.05f) * Mathf.Exp(-t * 2.5f);
+            return env * (0.6f * Mathf.Sin(2f * Mathf.PI * f * t) + 0.4f * s.Pink(rnd));
+        }));
+
+        public static AudioClip AlienAttack() => Get("Alien_Stalker_Attack", () => OneShot(0.45f, (t, rnd, s) =>
+        {
+            float env = Mathf.Clamp01(t / 0.02f) * Mathf.Exp(-t * 6f);
+            return env * (0.7f * s.Pink(rnd) + 0.5f * Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(260f, 140f, t / 0.45f) * t));
+        }));
+
+        public static AudioClip AlienDeath() => Get("Alien_Stalker_Death", () => OneShot(1.4f, (t, rnd, s) =>
+        {
+            float f = Mathf.Lerp(380f, 70f, t / 1.4f);
+            float env = Mathf.Clamp01(t / 0.03f) * Mathf.Exp(-t * 2f);
+            return env * (0.6f * Mathf.Sin(2f * Mathf.PI * f * t + 3f * Mathf.Sin(2f * Mathf.PI * 13f * t)) + 0.3f * s.Brown(rnd));
+        }));
+
+        public static AudioClip AlienHurt() => Get("Alien_Stalker_Hurt", () => OneShot(0.3f, (t, rnd, s) =>
+        {
+            float env = Mathf.Exp(-t * 12f);
+            return env * (0.6f * Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(700f, 500f, t / 0.3f) * t) + 0.4f * s.Pink(rnd));
+        }));
+
         public static AudioClip SparkCrackle() => Get("Sfx_SparkCrackle", () => OneShot(0.5f, (t, rnd, s) =>
         {
             float env = Mathf.Exp(-t * 7f);

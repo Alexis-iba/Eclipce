@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace EclipseGenesis.World
 {
@@ -20,6 +21,8 @@ namespace EclipseGenesis.World
         [SerializeField] private float triggerRadius = 3.2f;
         [SerializeField] private float closeDelay = 1f;
         [SerializeField] private bool locked;
+        [Tooltip("Carve the NavMesh while locked so AI cannot path through a closed door.")]
+        [SerializeField] private NavMeshObstacle[] obstacles;
 
         [Header("Status lights")]
         [SerializeField] private Renderer[] statusRenderers;
@@ -49,6 +52,7 @@ namespace EclipseGenesis.World
             if (leftLeaf != null) _leftClosed = leftLeaf.localPosition;
             if (rightLeaf != null) _rightClosed = rightLeaf.localPosition;
             RefreshStatus();
+            RefreshObstacles();
         }
 
         private void Start()
@@ -105,6 +109,13 @@ namespace EclipseGenesis.World
         {
             locked = value;
             RefreshStatus();
+            RefreshObstacles();
+        }
+
+        private void RefreshObstacles()
+        {
+            if (obstacles == null) return;
+            foreach (var o in obstacles) if (o != null) o.enabled = locked;
         }
 
         private void RefreshStatus()

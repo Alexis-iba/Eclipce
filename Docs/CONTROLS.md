@@ -10,17 +10,17 @@ Asset: `Assets/_EclipseGenesis/Input/EclipseGenesisControls.inputactions`, mapa 
 | Ctrl izquierdo (alternativa: C) | Agacharse / levantarse | B / Círculo | ✅ Funcional |
 | Ctrl durante el sprint | Deslizarse | B durante el sprint | ✅ Funcional |
 | Espacio | Saltar (estando agachado, se levanta) | A / Cruz | ✅ Funcional |
-| Clic izquierdo | Disparar | RT / R2 | ⏳ Asignada, sin sistema (Fase 3) |
-| Clic derecho | Apuntar | LT / L2 | ⏳ Asignada, sin sistema (Fase 3). La cámara ya se estabiliza cuando el arma active `IsAiming` |
-| R | Recargar | X / Cuadrado | ⏳ Asignada, sin sistema (Fase 3) |
-| 1 / 2 / 3 | Cambiar de arma (ranura directa) | Cruceta izquierda / derecha · LB | ⏳ Asignada, sin sistema (Fase 3) |
-| Rueda del ratón | Arma siguiente / anterior | Y / Triángulo | ⏳ Asignada, sin sistema (Fase 3) |
-| F | Interactuar | Cruceta arriba | ⏳ Asignada, sin sistema (Fase 6) |
-| G | Granada | RB / R1 | ⏳ Asignada, sin sistema (Fase 3) |
-| T | Inspeccionar el arma | Cruceta abajo | ⏳ Asignada, sin sistema (Fase 9) |
-| Escape | Pausa | Start | ⏳ Asignada, sin sistema (Fase 7) |
+| Clic izquierdo | Disparar (automático) | RT / R2 | ✅ Funcional (EG-47) |
+| Clic derecho | Apuntar (ADS) | LT / L2 | ✅ Funcional: mira centrada, zoom, menos dispersión y cámara estable |
+| R | Recargar (también automática al vaciar el cargador) | X / Cuadrado | ✅ Funcional |
+| 1 / 2 / 3 | Cambiar de arma (ranura directa) | Cruceta izquierda / derecha · LB | 🟡 Sistema listo; solo existe el EG-47 en la ranura 1 |
+| Rueda del ratón | Arma siguiente / anterior | Y / Triángulo | 🟡 Sistema listo; con una sola arma no cambia |
+| F | Interactuar (terminal de emergencia) | Cruceta arriba | ✅ Funcional |
+| G | Granada | RB / R1 | ⏳ Asignada, sin sistema |
+| T | Inspeccionar el arma | Cruceta abajo | ✅ Funcional (animación procedural) |
+| Escape | Pausa | Start | ⏳ Asignada, sin sistema. En el ejecutable se sale con Alt+F4 o desde las pantallas de victoria y derrota |
 
-Solo en la escena de pruebas `EG_FPS_Test`:
+Herramientas de desarrollo (en cualquier escena):
 
 | Tecla | Acción |
 |---|---|
@@ -29,3 +29,5 @@ Solo en la escena de pruebas `EG_FPS_Test`:
 
 Las acciones ⏳ están definidas y asignadas en el asset, pero ningún sistema las consume todavía: no simulan nada.
 En el Editor, **Esc** libera el ratón (comportamiento estándar de la vista Game). En el ejecutable, mientras no exista el menú de pausa, el juego se cierra con **Alt+F4**.
+
+Parámetros de desarrollo del ejecutable: `-egSpawn x,y,z,giro` coloca al jugador en un punto concreto y `-egTrace` registra cada segundo la posición y la entrada en `Player.log`.

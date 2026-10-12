@@ -55,12 +55,38 @@ La escena se genera con **Eclipse Genesis → Build → Genesis Research Facilit
 
 **Falta:** tu recorrido manual (sensación y legibilidad de la iluminación), medir el rendimiento recorriendo todo el mapa, investigar el crash en D3D12 y sustituir la geometría y las texturas provisionales (ver `ASSETS_REQUIRED.md`).
 
-## FASE 3: Armas ⏳
-WeaponData (ScriptableObject), WeaponController, disparo por raycast, munición y recarga, ADS (`IsAiming`, FOV y sensibilidad), retroceso con `PlayerLook.AddRotation`, ranuras 1/2/3 y granada. Se empieza por el EG-47.
-## FASE 4: Salud, escudo y daño ⏳
-## FASE 5: Primera IA (Stalker) ⏳
-## FASE 6: Laboratorio jugable (geometría provisional y NavMesh) ⏳
-## FASE 7: HUD y pausa ⏳
-## FASE 8: Misión "Primer Contacto" y checkpoints ⏳
+## "Fase 4" pedida: PRIMER COMBATE REAL (cubre las fases 3, 4, 5, 7 y 8 del plan original) ✅ automático · 🟡 pendiente de tu partida (2026-10-12)
+Todo se regenera con **Eclipse Genesis → Build → Everything** (`FullBuild`). Se generó por MCP en el Editor abierto.
+
+| Sistema | Qué hay | Verificación real |
+|---|---|---|
+| **Rifle EG-47** | Modelo **provisional** de más de 30 piezas (cajón de mecanismos, guardamanos con luces azules, freno de boca, cargador, culata, mira holográfica) con brazos y guantes, en `Prefabs/Weapons/EG_Weapon_EG47.prefab`. Datos en `Data/Weapons/EG47.asset` (28 de daño, 650 RPM, 30/120, recarga de 2,3 s) | PlayMode: visible en la mitad inferior derecha; dispara en automático; cada disparo gasta una bala; la recarga deja 30 y descuenta la reserva; con el ADS la mira queda centrada (±3 %), baja el FOV y la dispersión; el retroceso sube la cámara. Captura del ejecutable: arma y HUD visibles |
+| Animación del arma | Procedural (no hay clips): cadera/ADS, inercia al mirar, balanceo, sprint y sprint táctico, retroceso, recarga con el cargador fuera y la mano siguiéndolo, desenfundado, inspección (T) y retirada junto a paredes | Verificación visual en el ejecutable. La sensación necesita tu partida |
+| Efectos y sonido | Fogonazo con luz, trazadoras, chispas de impacto, sangre alienígena, casquillos físicos; sonidos sintetizados de disparo, recarga, gatillo en vacío y hitmarker | El código se ejecuta en las pruebas de disparo. Calidad audiovisual pendiente de tu valoración |
+| **Salud y escudo** | `PlayerHealth`: 100 de salud y 100 de escudo, que se regenera tras 4 s sin daño | PlayMode: el daño baja primero el escudo y el HUD lo refleja; con 0 de salud llega la derrota |
+| **Stalker** (`Prefabs/Aliens/EG_Alien_Stalker.prefab`) | Criatura original **provisional**: 4 patas articuladas, armadura biológica, 4 ojos bioluminiscentes con luz y garras. NavMeshAgent, 6 hitboxes (cabeza ×2,2, cuerpo ×1, patas ×0,7), 120 de vida | EditMode: prefab completo. PlayMode: muere a disparos con hitmarker y deja de navegar al morir |
+| IA del Stalker | Idle → Patrol → Alert → Chase → Attack → Search, con visión (cono de 140°, 24 m, rayo de línea de visión), oído (disparos) y reacción al daño | PlayMode: detecta a 16 m, persigue y ataca; **no ve a través de paredes**; el golpe **solo conecta dentro de su alcance** (comprobado al impactar). Captura del ejecutable: un Stalker atacó y bajó el escudo a 28 |
+| Sala de investigación | La zona de combate ahora tiene 4 cápsulas, 3 pantallas de seguridad, la terminal de emergencia, coberturas, contenedores, balizas rojas y un pasillo de salida con zona de extracción | EditMode: escena sin referencias rotas. Los 3 Stalker aparecen a más de 6 m del jugador |
+| **HUD** | Escudo/salud, arma/munición/recarga, retícula dinámica, hitmarker (rojo al matar), indicadores de daño direccionales, viñeta con salud baja, objetivo con aviso, `[F]` para interactuar, pantallas de victoria y derrota | PlayMode: la munición, el escudo y la salud muestran valores reales; aparecen el hitmarker y las pantallas finales |
+| **Misión OPERACIÓN PRIMER CONTACTO** | 7 objetivos: explorar el laboratorio → localizar la puerta de seguridad (se desbloquea) → entrar en la sala (se cierra detrás) → eliminar a los 3 Stalker (0/3) → activar la terminal (F) → abrir la salida → llegar a la extracción | PlayMode: **misión completada de principio a fin** con victoria; **derrota** al morir el jugador |
+
+**Pruebas (última ejecución completa, 2026-10-12):** 26/26 EditMode y 27/27 PlayMode en verde, con 0 errores y 0 advertencias de compilación.
+
+**Correcciones encontradas al verificar:**
+- Unity recompilaba los scripts en mitad del Play Mode, lo que rompía el Input System y la lista de armas. Ahora recompila al salir de Play.
+- `Run In Background` estaba desactivado: el Play Mode se pausaba cuando el Editor no tenía el foco.
+- Un menú con "ó" no se ejecutaba por MCP por la codificación.
+
+**Pendiente (no verificado o no hecho):**
+- Tu partida para valorar sensación, dificultad, legibilidad y sonido.
+- Modelos y animaciones reales del arma, de los brazos y del Stalker (ver `ASSETS_REQUIRED.md`).
+- Granada (la G no hace nada todavía), menú de pausa (Esc), checkpoints.
+- Las otras armas (VX-9, BR-12, NS-50, PLASMA-X).
+- Medir el rendimiento con combate en toda la misión: el registro muestra unos 43–48 FPS de media a 2560×1600 en High Fidelity durante los primeros segundos, que incluyen la compilación de shaders.
+- Investigar el crash en D3D12.
+
+## FASE 6: Laboratorio jugable ✅ (cubierto por Genesis_Research_Facility y la sala de investigación)
+## FASE 7: Menú de pausa y configuración ⏳ (el HUD ya está hecho)
+## FASE 8: Checkpoints ⏳ (la misión ya está hecha)
 ## FASE 9: Animaciones y efectos audiovisuales ⏳
 ## FASE 10: Optimización y build de Windows ⏳ (ya existe un build de prueba; la PC objetivo está por definir y medir)

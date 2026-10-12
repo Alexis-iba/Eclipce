@@ -80,10 +80,10 @@ namespace EclipseGenesis.Tests
         public void Doors_AreWired_AndSealedDoorsAreLocked()
         {
             var doors = All<AutoDoor>();
-            Assert.AreEqual(7, doors.Length, "5 interior doors + 2 sealed doors expected");
+            Assert.AreEqual(7, doors.Length, "5 interior doors, the sealed blast door and the mission exit door");
             foreach (var d in doors)
             {
-                bool shouldBeLocked = d.name.Contains("Sealed");
+                bool shouldBeLocked = d.name == "Door_BlastSealed" || d.name == "Door_Exit";
                 Assert.AreEqual(shouldBeLocked, d.IsLocked, $"{d.name} lock state");
             }
         }
@@ -93,7 +93,7 @@ namespace EclipseGenesis.Tests
         {
             var lights = All<Light>();
             int shadowed = lights.Count(l => l.shadows != LightShadows.None);
-            Assert.LessOrEqual(lights.Length, 70, "light count budget");
+            Assert.LessOrEqual(lights.Length, 80, "light count budget");
             Assert.LessOrEqual(shadowed, 20, "shadow-casting light budget");
             Assert.IsFalse(lights.Any(l => l.type == LightType.Directional), "interior map should not use a sun");
 

@@ -16,6 +16,7 @@ namespace EclipseGenesis.Tests
     {
         private const string SceneName = "EG_FPS_Test";
         private Keyboard _keyboard;
+        private Mouse _mouse;
 
         public override void Setup()
         {
@@ -23,7 +24,7 @@ namespace EclipseGenesis.Tests
             // Batch runs lose window focus at random; never let that reset the virtual keyboard mid-test.
             InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             _keyboard = InputSystem.AddDevice<Keyboard>();
-            InputSystem.AddDevice<Mouse>();
+            _mouse = InputSystem.AddDevice<Mouse>();
         }
 
         public override void TearDown()
@@ -77,11 +78,12 @@ namespace EclipseGenesis.Tests
             yield return MeasureBob(offset, 1.5f, v => hipBob = v);
             Assert.Greater(Vector3.Distance(start, player.transform.position), 4f, "player should walk in the scene");
 
-            movement.IsAiming = true; // set by the weapon system from Phase 3 on
+            Press(_mouse.rightButton); // real ADS through the EG-47
             yield return Seconds(0.4f);
             float aimBob = 0f;
             yield return MeasureBob(offset, 1.2f, v => aimBob = v);
             Release(_keyboard.wKey);
+            Release(_mouse.rightButton);
 
             Assert.Greater(hipBob, 0.005f, "some head bob is expected while walking");
             Assert.Less(hipBob, 0.05f, "head bob must stay subtle");

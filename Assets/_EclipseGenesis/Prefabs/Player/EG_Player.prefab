@@ -79,7 +79,7 @@ Camera:
   m_ClearFlags: 1
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
-  m_GateFitMode: 2
+  m_GateFitMode: 1
   m_FOVAxisMode: 0
   m_Iso: 200
   m_ShutterSpeed: 0.005
@@ -290,7 +290,7 @@ Transform:
   m_GameObject: {fileID: 5546128603902006530}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.2, y: -0.22, z: 0.4}
+  m_LocalPosition: {x: 0.16, y: -0.2, z: 0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -311,6 +311,12 @@ GameObject:
   - component: {fileID: 5602554376991387290}
   - component: {fileID: 4458153958438613624}
   - component: {fileID: 7574957023116448128}
+  - component: {fileID: 1191232779651696873}
+  - component: {fileID: 2498381332387823042}
+  - component: {fileID: 7419143554692557942}
+  - component: {fileID: 8160067472148172457}
+  - component: {fileID: 1874272482721474638}
+  - component: {fileID: 777570335209505327}
   m_Layer: 0
   m_Name: EG_Player
   m_TagString: Player
@@ -453,8 +459,195 @@ MonoBehaviour:
   movement: {fileID: 2514585925942927331}
   look: {fileID: 5602554376991387290}
   targetCamera: {fileID: 348816574066869315}
-  visible: 1
+  visible: 0
   sensitivityStep: 0.1
+--- !u!114 &1191232779651696873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6152878773227024420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d929c286ec1104c4e97b2578b01dd537, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Combat.PlayerHealth
+  maxHealth: 100
+  maxShield: 100
+  shieldRegenDelay: 4
+  shieldRegenRate: 35
+--- !u!82 &2498381332387823042
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6152878773227024420}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &7419143554692557942
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6152878773227024420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d461f4ce2dcd89a4e92ba20e3752402f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Weapons.WeaponEffects
+  tracerMaterial: {fileID: 2100000, guid: ebd9dc8870314ae498005aa50894442e, type: 2}
+  sparkMaterial: {fileID: 2100000, guid: afc4d1606fa8159488d7e11824324b4f, type: 2}
+  alienBloodMaterial: {fileID: 2100000, guid: 226d0689418b3de458432504482c2fb7, type: 2}
+  casingMesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+  casingMaterial: {fileID: 2100000, guid: e1d2b5454a32a6b46ae928eb2095651f, type: 2}
+  tracerSeconds: 0.05
+--- !u!114 &8160067472148172457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6152878773227024420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95c016a1d1fbe8d428e751ac2d51c17f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Weapons.WeaponController
+  input: {fileID: 3425398095175183642}
+  movement: {fileID: 2514585925942927331}
+  look: {fileID: 5602554376991387290}
+  cameraEffects: {fileID: 4458153958438613624}
+  health: {fileID: 1191232779651696873}
+  aimOrigin: {fileID: 97405203033703117}
+  weaponHolder: {fileID: 9217816041952630454}
+  effects: {fileID: 7419143554692557942}
+  audioSource: {fileID: 2498381332387823042}
+  loadout:
+  - {fileID: 11400000, guid: f39a2332186c7f64eafc236f1bbbfabd, type: 2}
+--- !u!114 &1874272482721474638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6152878773227024420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f49010feab44dd45ab9f8118109c80d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.World.PlayerInteraction
+  input: {fileID: 3425398095175183642}
+  viewPoint: {fileID: 97405203033703117}
+  range: 2.6
+--- !u!114 &777570335209505327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6152878773227024420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43255df799dfe8549be0e679b780aa13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.UI.HUDController
+  health: {fileID: 1191232779651696873}
+  weapons: {fileID: 8160067472148172457}
+  interaction: {fileID: 1874272482721474638}
+  viewCamera: {fileID: 348816574066869315}
+  uiAudio: {fileID: 2498381332387823042}
+  hitmarkerClip: {fileID: 8300000, guid: d20065fd4d79d4544b93d8e022969e5b, type: 3}
 --- !u!1 &7324010961268049394
 GameObject:
   m_ObjectHideFlags: 0
