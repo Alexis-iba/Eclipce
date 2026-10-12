@@ -25,6 +25,8 @@ namespace EclipseGenesis.Tests
         public override void Setup()
         {
             base.Setup();
+            // Batch runs lose window focus at random; never let that reset the virtual keyboard mid-test.
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             _savedSensitivity = PlayerPrefs.GetFloat(PlayerLook.SensitivityPrefKey, 1f);
             PlayerPrefs.SetFloat(PlayerLook.SensitivityPrefKey, 1f);
             _keyboard = InputSystem.AddDevice<Keyboard>();
@@ -112,7 +114,7 @@ namespace EclipseGenesis.Tests
             yield return Seconds(0.3f);
 
             Press(_keyboard.leftCtrlKey);
-            yield return null;
+            yield return Seconds(0.1f); // hold for a few frames like a real key press
             Release(_keyboard.leftCtrlKey);
             yield return Seconds(0.6f);
             Assert.IsTrue(_movement.IsCrouching);
@@ -123,7 +125,7 @@ namespace EclipseGenesis.Tests
             yield return null;
 
             Press(_keyboard.leftCtrlKey);
-            yield return null;
+            yield return Seconds(0.1f); // hold for a few frames like a real key press
             Release(_keyboard.leftCtrlKey);
             yield return Seconds(0.4f);
             Assert.IsTrue(_movement.IsCrouching, "must stay crouched when there is no headroom");
@@ -147,7 +149,7 @@ namespace EclipseGenesis.Tests
             bool slideStarted = false;
             _movement.SlideStarted += () => slideStarted = true;
             Press(_keyboard.leftCtrlKey);
-            yield return null;
+            yield return Seconds(0.1f); // hold for a few frames like a real key press
             Release(_keyboard.leftCtrlKey);
             yield return Seconds(0.15f);
 
@@ -171,7 +173,7 @@ namespace EclipseGenesis.Tests
             bool landed = false;
             _movement.Landed += _ => landed = true;
             Press(_keyboard.spaceKey);
-            yield return null;
+            yield return Seconds(0.1f); // hold for a few frames like a real key press
             Release(_keyboard.spaceKey);
 
             for (float t = 0f; t < 1.5f; t += Time.deltaTime)

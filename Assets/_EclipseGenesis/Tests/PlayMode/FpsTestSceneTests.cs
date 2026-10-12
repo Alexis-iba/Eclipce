@@ -20,6 +20,8 @@ namespace EclipseGenesis.Tests
         public override void Setup()
         {
             base.Setup();
+            // Batch runs lose window focus at random; never let that reset the virtual keyboard mid-test.
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             _keyboard = InputSystem.AddDevice<Keyboard>();
             InputSystem.AddDevice<Mouse>();
         }

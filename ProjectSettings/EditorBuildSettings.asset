@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_EclipseGenesis/Scenes/Genesis_Research_Facility.unity
+    guid: f66aaf675f1837b40b724814fdd1e6e0
+  - enabled: 1
     path: Assets/_EclipseGenesis/Scenes/EG_FPS_Test.unity
     guid: 3ccc080a91078d641b8c5d8d771a3b9d
   m_configObjects:

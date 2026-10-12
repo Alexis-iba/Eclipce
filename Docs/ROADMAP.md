@@ -5,7 +5,7 @@ Leyenda: ✅ hecho y verificado · 🟡 implementado, falta verificación manual
 ## FASE 1: Preparación del proyecto ✅ (2026-10-12)
 | Tarea | Resultado verificado |
 |---|---|
-| Conexión MCP con Unity | ❌ **No existe.** Comprobado de nuevo el 2026-10-12: la sesión solo tiene conectados phaser-game-agent, Claude Docs, visualize y scheduled-tasks, y no hay ningún servidor de Unity en la configuración de Claude ni en el proyecto. Unity se controla con `Unity.exe -batchmode` (generadores con `-executeMethod`, Play Mode con `-runTests`). |
+| Conexión MCP con Unity | ✅ **Conectada y verificada** (2026-10-12). MCP for Unity 10.3.0, transporte HTTP en `http://127.0.0.1:8080/mcp`, registrada con `claude mcp add --scope local`. Prueba real: lectura de la escena, la jerarquía y la consola, y creación de `EG_MCP_CONNECTION_TEST` en (0, 2, 0) guardado en `Scenes/Tests`. Prueba en frío: con Unity cerrado y el servidor detenido, al abrir Unity el servidor arrancó solo en 31 s y respondió por MCP en 32 s. |
 | Proyecto | `C:\Users\ibarr\EclipseGenesis`, creado desde la plantilla HDRP oficial. El código y los assets propios están en `Assets/_EclipseGenesis/`. |
 | Versión de Unity | 6000.4.8f1 |
 | Render pipeline | HDRP 17.4.0, espacio de color lineal, 3 niveles de calidad (prueba EditMode) |

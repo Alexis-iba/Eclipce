@@ -4,6 +4,7 @@
     "references": [
         "EclipseGenesis.Runtime",
         "Unity.InputSystem",
+        "Unity.AI.Navigation",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.RenderPipelines.HighDefinition.Runtime"
     ],

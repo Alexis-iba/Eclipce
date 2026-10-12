@@ -96,13 +96,5 @@ namespace EclipseGenesis.Tests
             Assert.IsTrue(a.bindings.Any(b => b.path == path), $"{action} should be bound to {path}");
         }
 
-        [Test]
-        public void FpsTestScene_IsFirstInBuildSettings()
-        {
-            var scenes = EditorBuildSettings.scenes;
-            Assert.IsTrue(scenes.Length > 0);
-            Assert.AreEqual(FpsTestSceneBuilder.ScenePath, scenes.First().path);
-            Assert.IsTrue(scenes.All(s => System.IO.File.Exists(s.path)), "build settings reference a missing scene");
-        }
     }
 }

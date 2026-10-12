@@ -56,7 +56,7 @@ namespace EclipseGenesis.EditorTools
 
             EnsureFolder(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
-            AddSceneToBuild(ScenePath);
+            BuildSceneRegistry.Sync();
             AssetDatabase.SaveAssets();
             Debug.Log($"[EclipseGenesis] Built {ScenePath} and {PlayerPrefabPath}");
         }
@@ -294,15 +294,6 @@ namespace EclipseGenesis.EditorTools
             {
                 EditorBuildSettings.RemoveConfigObject(key);
             }
-        }
-
-        private static void AddSceneToBuild(string path)
-        {
-            var scenes = EditorBuildSettings.scenes
-                .Where(s => !string.IsNullOrEmpty(s.path) && File.Exists(s.path) && s.path != path)
-                .ToList();
-            scenes.Insert(0, new EditorBuildSettingsScene(path, true));
-            EditorBuildSettings.scenes = scenes.ToArray();
         }
 
         private static void SetRef(Object target, string field, Object value)

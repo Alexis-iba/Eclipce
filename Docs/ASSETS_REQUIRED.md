@@ -17,4 +17,22 @@ Ahora mismo **todo es provisional**: cubos con materiales HDRP/Lit de color plan
 | Baja | VX-9, BR-12, NS-50 y PLASMA-X | — | Mismos sockets que el EG-47 | 3+ |
 | Baja | Ravager, Spitter, Phantom y Eclipse Prime | — | — | Campaña |
 
+## Genesis_Research_Facility: qué es provisional hoy
+
+Toda la geometría de la escena es **provisional**: cajas y cilindros con UVs en metros, generados por `FacilitySceneBuilder`. Los materiales son PBR de HDRP, pero sus texturas son **procedurales**: se generan por código en `Art/Generated/Textures` y no son escaneadas ni pintadas. El escenario **no es fotorrealista**.
+
+| Prioridad | Asset | Sustituye a | Requisitos |
+|---|---|---|---|
+| Alta | Kit modular sci-fi (paredes, suelos, techos, marcos y puertas de seguridad de 2,2 × 2,6 m) | Cajas `Wall_*`, `Floor`, `Ceiling` y puertas de primitivas | Rejilla de 1 m; LODs; colisiones simples; mapas BaseColor/Normal/Mask de HDRP a 2K |
+| Alta | Texturas PBR reales: metal pintado gastado, hormigón, chapa antideslizante, rejilla, franjas de peligro | `ProceduralTextures` (MetalPanel, Concrete, DiamondPlate, Grating, Hazard) | 2K, tileables, con Mask Map de HDRP (metal/AO/detalle/suavidad) |
+| Alta | Luminarias de techo, balizas giratorias y focos industriales | Cajas emisivas `CeilingLight` y cilindros `Beacon` | Con perfil IES opcional para HDRP |
+| Media | Tuberías, conductos, bandejas de cables y rejillas con codos y soportes | Cilindros `Pipe`, cajas `Duct` y `CableTray` | Kit con piezas rectas, codos de 90° y bridas |
+| Media | Terminales, pantallas, racks de servidores, bancos de laboratorio, taquillas y soportes de armas | Cajas compuestas (`Terminal`, `ServerRack`, `LabBench`, `Locker`, `WeaponRack_Empty`) | Pantallas con UV propias para la emisión |
+| Media | Tanques de especímenes con cristal real y especímenes dentro | Cilindros emisivos opacos `Tank` | Cristal con HDRP Lit transparente o refracción |
+| Media | Contenedores, barreras de hormigón y cajas militares | Cajas `ShippingContainer`, `ConcreteBarrier`, `Crate` | Escala real (contenedor de 20 ft: 6,06 × 2,6 × 2,44 m) |
+| Media | Biomasa alienígena orgánica | Esferas aplastadas `AlienBiomass` | Shader Graph con translucidez y emisión |
+| Media | VFX de humo, vapor y chispas | `LocalVolumetricFog` con ruido 3D y partículas HDRP/Unlit | VFX Graph (paquete no instalado) |
+| Media | Audio real: zumbido eléctrico, ventilación, puertas neumáticas, sirena y chispas | WAV sintetizados en `Audio/Generated` | 48 kHz, bucles sin cortes |
+| Baja | Decals: suciedad, quemaduras, fluidos alienígenas, señalética y numeración de zonas | 3 decals procedurales | Atlas de decals con normal y máscara |
+
 Las fuentes candidatas (Unity Asset Store gratuito, Mixamo para pruebas de rig, librerías CC0) se propondrán antes de importar nada.
