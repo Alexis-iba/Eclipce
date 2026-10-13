@@ -15,7 +15,7 @@ MonoBehaviour:
   id: EG-47
   displayName: EG-47
   description: Rifle de asalto GENESIS
-  viewModelPrefab: {fileID: 6499141397398961368, guid: ba46cae340017ba42967406d307bdcc1, type: 3}
+  viewModelPrefab: {fileID: 9124205080878250754, guid: 4c9c82e0e0684b54cba8e6c76dcb9449, type: 3}
   damage: 28
   effectiveRange: 45
   maxRange: 200

@@ -97,6 +97,11 @@ Todo se regenera con **Eclipse Genesis → Build → Everything** (`FullBuild`).
 - Tu partida en el mapa abierto.
 - Revisar `ProceduralTextures`: usa `Mathf.SmoothStep` igual que el terreno, pero define el aspecto ya validado de la instalación.
 
+## Reconstrucción visual según la referencia: primera entrega ✅ automático · 🟡 pendiente de tu partida (2026-10-12)
+- Análisis y comparación: `Docs/REFERENCE_COMPARISON.md`.
+- Escena nueva `Eclipse_Genesis_OpenWorld_Realistic` (calle residencial de 100 × 100 m) con casas de Blender, casa explorable, calle, aceras, vegetación, postes y cables, barricada, iluminación HDRP y el EG-47 nuevo de Blender (`VM_EG47_Detailed`, asignado en `EG47.asset`; el prefab provisional se conserva).
+- Pendiente: sedán quemado, brazos y guantes, y aliens (IA 3D, requiere tu clave); medir FPS jugando; ampliar el barrio y la base Genesis.
+
 ## FASE 6: Laboratorio jugable ✅ (cubierto por Genesis_Research_Facility y la sala de investigación)
 ## FASE 7: Menú de pausa y configuración ⏳ (el HUD ya está hecho)
 ## FASE 8: Checkpoints ⏳ (la misión ya está hecha)

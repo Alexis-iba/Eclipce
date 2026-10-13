@@ -18,7 +18,7 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: EG_Roof
-    second: {fileID: 2100000, guid: 9513b2f26eebb7542b8d9723dccbd35a, type: 2}
+    second: {fileID: 2100000, guid: 752b738aec5d585448562fe6f1678782, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -28,12 +28,12 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: EG_Trim
-    second: {fileID: 2100000, guid: f33a20b3c2f83d548bd7feb29806d58c, type: 2}
+    second: {fileID: 2100000, guid: 795390db4a9d32e41b5d53e1babc4daa, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: EG_WoodFloor
-    second: {fileID: 2100000, guid: f15ca807f78e1e148a11d10c12875150, type: 2}
+    second: {fileID: 2100000, guid: b02d51a8eec440a4795a9ebfb848f990, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

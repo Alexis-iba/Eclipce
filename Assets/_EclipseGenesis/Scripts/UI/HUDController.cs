@@ -25,7 +25,7 @@ namespace EclipseGenesis.UI
         [SerializeField] private AudioSource uiAudio;
         [SerializeField] private AudioClip hitmarkerClip;
 
-        private static readonly Color Panel = new Color(0.02f, 0.025f, 0.03f, 0.62f);
+        private static readonly Color Panel = new Color(0.02f, 0.025f, 0.03f, 0.72f);
         private static readonly Color Grey = new Color(0.55f, 0.58f, 0.62f, 1f);
         private static readonly Color White = new Color(0.94f, 0.95f, 0.96f, 1f);
         private static readonly Color Red = new Color(0.9f, 0.14f, 0.1f, 1f);
@@ -36,6 +36,7 @@ namespace EclipseGenesis.UI
         private const float RadarSize = 210f;
         private const float RadarRange = 60f;
         private const int ShieldPlates = 3;
+        private const int MaxObjectiveRows = 4;
 
         private Font _font;
         private RectTransform _root;
@@ -307,22 +308,26 @@ namespace EclipseGenesis.UI
             var m = MissionManager.Current;
             var all = m != null ? m.Objectives : null;
             if (all == null || all.Count == 0) return;
-            if (_objectiveRows.Length != all.Count)
+            // Compact checklist (concept art): a window of up to four objectives, the previous one included once done.
+            int rows = Mathf.Min(MaxObjectiveRows, all.Count);
+            if (_objectiveRows.Length != rows)
             {
                 foreach (var row in _objectiveRows) if (row != null) Destroy(row.gameObject);
-                _objectiveRows = new Text[all.Count];
-                for (int i = 0; i < all.Count; i++)
+                _objectiveRows = new Text[rows];
+                for (int i = 0; i < rows; i++)
                     _objectiveRows[i] = Label(_objectiveList, "", 17, Grey, new Vector2(18, -i * 26), new Vector2(400, 24), TextAnchor.UpperLeft);
-                _objectivePanel.sizeDelta = new Vector2(_objectivePanel.sizeDelta.x, 48 + all.Count * 26);
+                _objectivePanel.sizeDelta = new Vector2(_objectivePanel.sizeDelta.x, 48 + rows * 26);
             }
             bool finished = m.State != MissionState.InProgress;
-            for (int i = 0; i < all.Count; i++)
+            int first = Mathf.Clamp(index - 1, 0, all.Count - rows);
+            for (int r = 0; r < rows; r++)
             {
+                int i = first + r;
                 bool done = i < index || (finished && m.State == MissionState.Victory);
                 bool current = i == index && !finished;
-                _objectiveRows[i].text = done ? $"■  {all[i]}" : current ? $"►  {currentText}" : $"□  {all[i]}";
-                _objectiveRows[i].color = done ? new Color(Blue.r, Blue.g, Blue.b, 0.6f) : current ? White : Dim;
-                _objectiveRows[i].fontStyle = current ? FontStyle.Bold : FontStyle.Normal;
+                _objectiveRows[r].text = done ? $"■  {all[i]}" : current ? $"►  {currentText}" : $"□  {all[i]}";
+                _objectiveRows[r].color = done ? new Color(Blue.r, Blue.g, Blue.b, 0.75f) : current ? White : new Color(0.85f, 0.87f, 0.9f, 0.85f);
+                _objectiveRows[r].fontStyle = current ? FontStyle.Bold : FontStyle.Normal;
             }
         }
 

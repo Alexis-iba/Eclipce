@@ -30,9 +30,14 @@ namespace EclipseGenesis.EditorTools.Art
             { "asphalt_02", 4f }, { "weathered_plank_siding", 2.5f }, { "wood_floor_worn", 2f }, { "white_plaster_02", 2f },
             { "roof_09", 3f }, { "corrugated_iron_02", 2f }, { "cracked_concrete_wall", 3f }, { "concrete_floor_worn_001", 3f },
             { "metal_plate", 2f }, { "rust_coarse_01", 2f },
+            // Residential street pack (2026-10-12).
+            { "grey_roof_01", 3f }, { "red_brick_03", 2.5f }, { "painted_brick", 2.5f }, { "distressed_painted_planks", 2f },
+            { "blue_painted_planks", 2f }, { "white_planks_clean", 2f }, { "concrete_pavement_02", 2.5f }, { "worn_asphalt", 5f },
+            { "leafy_grass", 3f }, { "grass_ground", 3f }, { "peeling_painted_wall", 2.5f }, { "plank_flooring_02", 2f },
+            { "bark_brown_02", 2f }, { "tree_small_02_leaves", 1f },
         };
 
-        private static readonly string[] TerrainSurfaces = { "sparse_grass", "dry_mud_field_001", "rocky_terrain_02", "rocky_trail", "asphalt_02" };
+        private static readonly string[] TerrainSurfaces = { "sparse_grass", "dry_mud_field_001", "rocky_terrain_02", "rocky_trail", "asphalt_02", "leafy_grass", "grass_ground" };
 
         // ------------------------------------------------------------------ import rules
 
@@ -41,7 +46,7 @@ namespace EclipseGenesis.EditorTools.Art
             if (!assetPath.StartsWith(Root)) return;
             var importer = (TextureImporter)assetImporter;
             string file = Path.GetFileNameWithoutExtension(assetPath);
-            if (assetPath.EndsWith(".hdr") || assetPath.EndsWith(".exr"))
+            if (assetPath.StartsWith(Root + "Sky/") && (assetPath.EndsWith(".hdr") || assetPath.EndsWith(".exr")))   // only sky HDRIs are cubemaps
             {
                 importer.textureShape = TextureImporterShape.TextureCube;
                 importer.generateCubemap = TextureImporterGenerateCubemap.AutoCubemap;
@@ -229,8 +234,9 @@ namespace EclipseGenesis.EditorTools.Art
         {
             var maps = Surfaces($"{Root}Textures/{id}").TryGetValue(id, out var m) ? m : null;
             if (maps == null || !maps.ContainsKey("diff")) return null;
-            var mat = SurfaceMaterial($"M_PH_{id}", maps, cutout: false);
-            float tile = TileMeters.TryGetValue(id, out float t) ? t : 2.5f;
+            bool atlas = maps.ContainsKey("alpha");   // leaf atlases: alpha cut-out, UVs are atlas coordinates
+            var mat = SurfaceMaterial($"M_PH_{id}", maps, cutout: atlas);
+            float tile = atlas ? 1f : TileMeters.TryGetValue(id, out float t) ? t : 2.5f;
             mat.SetTextureScale("_BaseColorMap", Vector2.one / tile);
             HDMaterial.ValidateMaterial(mat);
             return mat;
@@ -327,11 +333,83 @@ namespace EclipseGenesis.EditorTools.Art
         /// <summary>Material names used by the Blender generators (ArtSource/Blender) and the library surface each one uses.</summary>
         public static readonly Dictionary<string, string> BlenderMaterials = new Dictionary<string, string>
         {
-            { "EG_Siding", "weathered_plank_siding" }, { "EG_Trim", "white_plaster_02" }, { "EG_Roof", "roof_09" },
-            { "EG_Concrete", "concrete_floor_worn_001" }, { "EG_WoodFloor", "wood_floor_worn" }, { "EG_Plaster", "white_plaster_02" },
+            { "EG_Siding", "weathered_plank_siding" }, { "EG_Siding_B", "blue_painted_planks" }, { "EG_Siding_C", "white_planks_clean" },
+            { "EG_Siding_D", "distressed_painted_planks" }, { "EG_Trim", "white_planks_clean" }, { "EG_Roof", "grey_roof_01" },
+            { "EG_Brick", "red_brick_03" }, { "EG_Door", "blue_painted_planks" },
+            { "EG_Concrete", "concrete_floor_worn_001" }, { "EG_WoodFloor", "plank_flooring_02" }, { "EG_Plaster", "white_plaster_02" },
             { "EG_Metal", "metal_plate" }, { "EG_Rust", "rust_coarse_01" }, { "EG_Corrugated", "corrugated_iron_02" },
             { "EG_Asphalt", "asphalt_02" }, { "EG_ConcreteWall", "cracked_concrete_wall" },
         };
+
+        /// <summary>Weapon finishes (eg47_builder.py): base colour, metallic, smoothness, emissive nits (0 = none).</summary>
+        public static readonly Dictionary<string, (Color color, float metal, float smooth, float nits)> WeaponPaints =
+            new Dictionary<string, (Color, float, float, float)>
+            {
+                { "EG_GunMetal", (new Color(0.075f, 0.076f, 0.082f), 0.7f, 0.55f, 0f) },
+                { "EG_GunPolymer", (new Color(0.085f, 0.085f, 0.09f), 0f, 0.36f, 0f) },
+                { "EG_GunSteel", (new Color(0.09f, 0.09f, 0.095f), 0.85f, 0.42f, 0f) },
+                { "EG_GunAccent", (new Color(0.5f, 0.04f, 0.03f), 0.6f, 0.55f, 0f) },
+                { "EG_GunGlass", (new Color(0.35f, 0.5f, 0.45f, 0.18f), 0f, 0.95f, 0f) },
+                { "EG_GunReticle", (new Color(1f, 0.08f, 0.04f), 0f, 0.5f, 60f) },
+            };
+
+        public static Material WeaponMaterial(string name)
+        {
+            string path = $"{MaterialFolder}/M_{name}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                FpsTestSceneBuilder.EnsureFolder(MaterialFolder);
+                mat = new Material(Shader.Find("HDRP/Lit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            var p = WeaponPaints[name];
+            bool glass = name == "EG_GunGlass";
+            mat.SetFloat("_SurfaceType", glass ? 1f : 0f);
+            mat.SetColor("_BaseColor", p.color);
+            mat.SetFloat("_Metallic", p.metal);
+            mat.SetFloat("_Smoothness", p.smooth);
+            // Fine machining / wear detail from the scanned metal plate normal map, tiled small.
+            var detailNormal = AssetDatabase.LoadAssetAtPath<Texture2D>($"{Root}Textures/metal_plate/metal_plate_nor_gl.jpg");
+            if (!glass && name != "EG_GunReticle" && detailNormal != null)
+            {
+                mat.SetTexture("_NormalMap", detailNormal);
+                mat.SetFloat("_NormalScale", 0.25f);
+                mat.SetTextureScale("_BaseColorMap", Vector2.one * 8f);
+            }
+            if (p.nits > 0f)
+            {
+                HDMaterial.SetUseEmissiveIntensity(mat, true);
+                HDMaterial.SetEmissiveColor(mat, p.color);
+                HDMaterial.SetEmissiveIntensity(mat, p.nits, EmissiveIntensityUnit.Nits);
+            }
+            HDMaterial.ValidateMaterial(mat);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>Slightly dirty window glass: HDRP Lit, transparent, very smooth, faint blue-grey tint.</summary>
+        public static Material GlassMaterial()
+        {
+            string path = $"{MaterialFolder}/M_EG_WindowGlass.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                FpsTestSceneBuilder.EnsureFolder(MaterialFolder);
+                mat = new Material(Shader.Find("HDRP/Lit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetFloat("_SurfaceType", 1f);   // transparent
+            mat.SetFloat("_BlendMode", 0f);     // alpha
+            mat.SetColor("_BaseColor", new Color(0.42f, 0.5f, 0.53f, 0.28f));
+            mat.SetFloat("_Smoothness", 0.93f);
+            mat.SetFloat("_Metallic", 0f);
+            mat.SetFloat("_DoubleSidedEnable", 1f);
+            mat.SetFloat("_EnableBlendModePreserveSpecularLighting", 1f);
+            HDMaterial.ValidateMaterial(mat);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
 
         /// <summary>Remaps EG_* materials of FBX files exported by our Blender generators to the HDRP library materials.</summary>
         private static string RemapBlenderExport(string fbxPath)
@@ -345,8 +423,12 @@ namespace EclipseGenesis.EditorTools.Art
             foreach (string src in names)
             {
                 Material mat;
-                if (src.StartsWith("EG_PH_"))   // optimised copies of Poly Haven scans keep their surface material
-                    mat = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/M_PH_{src.Substring(6)}.mat");
+                if (src == "EG_Glass")
+                    mat = GlassMaterial();
+                else if (WeaponPaints.ContainsKey(src))
+                    mat = WeaponMaterial(src);
+                else if (src.StartsWith("EG_PH_"))   // optimised copies of Poly Haven scans keep their surface material
+                    mat = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/M_PH_{src.Substring(6)}.mat") ?? LibraryMaterial(src.Substring(6));
                 else if (BlenderMaterials.TryGetValue(src, out string id))
                     mat = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/M_PH_{id}.mat") ?? LibraryMaterial(id);
                 else continue;

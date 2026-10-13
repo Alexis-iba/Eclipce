@@ -61,3 +61,21 @@ Descarga autorizada de **Poly Haven (CC0)**: 1 HDRI, 14 materiales escaneados y 
 | Media | Variantes de casa (dañada, quemada, otros colores) | `house_builder.py` admite variantes |
 | Media | Fuego y humo (VFX) | VFX Graph no está instalado |
 | Media | Granadas (el HUD ya muestra los huecos) | Sistema de juego pendiente |
+
+## Calle residencial realista (Eclipse_Genesis_OpenWorld_Realistic): pendiente (2026-10-12)
+
+Descargado (autorizado, CC0) con `ArtSource/PolyHaven/download_street_pack.ps1`:
+- 13 texturas: tejado gris, ladrillo, tres revestimientos pintados, acera, asfalto, hierba, yeso, suelo y corteza;
+- el atlas de hojas de `tree_small_02`;
+- 14 modelos: mobiliario urbano y muebles.
+
+Los binarios no están en Git.
+
+| Prioridad | Recurso | Requisitos | Cómo conseguirlo |
+|---|---|---|---|
+| Alta | Sedán quemado y oxidado (y otros coches) | Unos 15–30k triángulos, PBR, ventanillas rotas, neumáticos deshinchados | IA 3D (Hyper3D Rodin o Hunyuan3D): **la clave de API la tienes que poner tú** en Blender (barra lateral N → pestaña BlenderMCP), no la escribiré yo |
+| Alta | Brazos y guantes FPS realistas | Rig con dedos, unos 10k triángulos, sustituyen a `Arm_L` y `Arm_R` de `VM_EG47_Detailed` | IA 3D + rig en Blender |
+| Alta | Stalker orgánico con rig (luego Ravager y Spitter) | Esqueleto genérico; animaciones de reposo, caminar, correr, ataque y muerte; hitboxes | IA 3D para la malla + rig y animación en Blender |
+| Media | Envejecimiento de las casas | Suciedad, manchas y daños | Decals de suciedad y fuga de agua; texturas de suciedad CC0 (requiere autorización) |
+| Media | Escombros y basura en el suelo | Papeles, ramas, tablas | Modelado en Blender o CC0 |
+| Media | Colinas: textura de hierba más verde en la distancia | — | Ajuste de capas del terreno (sin descarga) |

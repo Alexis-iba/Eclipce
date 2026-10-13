@@ -74,8 +74,13 @@ namespace EclipseGenesis.Tests
             Assert.Greater(vp.z, 0f, "weapon must be in front of the camera");
             Assert.That(vp.x, Is.InRange(0.5f, 1.05f), "weapon should sit on the right half");
             Assert.That(vp.y, Is.InRange(-0.1f, 0.5f), "weapon should sit on the lower half");
-            int renderers = model.GetComponentsInChildren<Renderer>(false).Length;
-            Assert.Greater(renderers, 20, "provisional model should be multi-part, not a single cube");
+            // Real geometry, not a single cube: the detailed Blender EG-47 has ~16k triangles over a few meshes.
+            int triangles = 0;
+            foreach (var mf in model.GetComponentsInChildren<MeshFilter>(false))
+                if (mf.sharedMesh != null)
+                    for (int s = 0; s < mf.sharedMesh.subMeshCount; s++) triangles += (int)mf.sharedMesh.GetIndexCount(s) / 3;
+            Assert.Greater(triangles, 2000, "weapon model should be detailed geometry, not a single cube");
+            Assert.IsNotNull(model.sight, "holographic sight socket missing");
         }
 
         [UnityTest]

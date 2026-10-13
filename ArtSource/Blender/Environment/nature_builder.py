@@ -141,6 +141,113 @@ def build_pines():
     return result
 
 
+# Leaf regions of the tree_small_02 leaves atlas (u0, v0, u1, v1): leaf clusters (left) and two leafy twigs (centre).
+LEAF_CLUSTERS = [(0.0, 0.0, 0.44, 0.34), (0.0, 0.33, 0.44, 0.67), (0.0, 0.66, 0.44, 1.0),
+                 (0.40, 0.30, 0.52, 0.92), (0.55, 0.36, 0.86, 0.96)]
+
+
+def broadleaf(name, seed, height, crown_radius):
+    """Round-crowned deciduous tree: tapered trunk and limbs plus ~150 leaf-cluster cards with spherical normals."""
+    rnd = random.Random(seed)
+    bm = bmesh.new()
+    uv = bm.loops.layers.uv.new("UVMap")
+    normals = {}   # loop normals for the foliage (bmesh faces -> per-vertex direction)
+
+    def limb(a, b, r0, r1, sides=7):
+        axis = (b - a)
+        length = axis.length
+        axis.normalize()
+        ref = Vector((0, 0, 1)) if abs(axis.z) < 0.9 else Vector((1, 0, 0))
+        s1 = axis.cross(ref).normalized()
+        s2 = axis.cross(s1).normalized()
+        rings = []
+        for t, r in ((0.0, r0), (1.0, r1)):
+            c = a + axis * length * t
+            rings.append([bm.verts.new(c + (s1 * math.cos(k / sides * math.tau) + s2 * math.sin(k / sides * math.tau)) * r)
+                          for k in range(sides)])
+        for k in range(sides):
+            j = (k + 1) % sides
+            f = bm.faces.new((rings[0][k], rings[0][j], rings[1][j], rings[1][k]))
+            f.material_index = 1
+            f.smooth = True
+            for loop, (uu, vv) in zip(f.loops, ((k, 0), (k + 1, 0), (k + 1, 1), (k, 1))):
+                loop[uv].uv = (uu / sides * (r0 * 6.0), vv * length * 0.5)
+
+    trunk_top = Vector((rnd.uniform(-0.3, 0.3), rnd.uniform(-0.3, 0.3), height * 0.3))
+    r_base = 0.22 + height * 0.016
+    limb(Vector((0, 0, -0.2)), trunk_top, r_base, r_base * 0.75)
+    centre = Vector((0, 0, height - crown_radius * 0.95))
+    tips = []
+    for i in range(rnd.randint(4, 6)):
+        a = i / 5 * math.tau + rnd.uniform(-0.4, 0.4)
+        tip = centre + Vector((math.cos(a) * crown_radius * 0.55, math.sin(a) * crown_radius * 0.55, rnd.uniform(-1.2, 1.2)))
+        limb(trunk_top, tip, r_base * 0.55, 0.05)
+        tips.append(tip)
+    limb(trunk_top, centre + Vector((0, 0, crown_radius * 0.7)), r_base * 0.5, 0.04)
+
+    # Leaf cards scattered in a flattened ellipsoid crown, denser on the outside.
+    cards = 0
+    target = int(150 + crown_radius * 18)
+    lobes = tips + [centre + Vector((0, 0, crown_radius * 0.45))]
+    while cards < target:
+        lobe = lobes[rnd.randrange(len(lobes))]
+        d = Vector((rnd.gauss(0, 1), rnd.gauss(0, 1), rnd.gauss(0, 1) * 0.8)).normalized()
+        r = crown_radius * 0.55 * (0.5 + 0.5 * rnd.random() ** 0.5)
+        p = lobe + Vector((d.x * r, d.y * r, d.z * r * 0.85))
+        if p.z < height * 0.36:
+            continue
+        size = rnd.uniform(1.3, 2.1)
+        # Card facing roughly outward, randomly rolled.
+        n = (p - centre).normalized()
+        t1 = n.cross(Vector((0, 0, 1)))
+        if t1.length < 1e-3:
+            t1 = Vector((1, 0, 0))
+        t1.normalize()
+        t2 = n.cross(t1).normalized()
+        roll = rnd.uniform(0, math.tau)
+        e1 = (t1 * math.cos(roll) + t2 * math.sin(roll)) * size * 0.5
+        e2 = (t2 * math.cos(roll) - t1 * math.sin(roll)) * size * 0.5
+        tilt = Vector((rnd.uniform(-0.4, 0.4), rnd.uniform(-0.4, 0.4), rnd.uniform(-0.4, 0.4)))
+        e2 = (e2 + tilt * size * 0.3)
+        corners = [p - e1 - e2, p + e1 - e2, p + e1 + e2, p - e1 + e2]
+        vs = [bm.verts.new(c) for c in corners]
+        f = bm.faces.new(vs)
+        f.material_index = 0
+        f.smooth = True
+        u0, v0, u1, v1 = LEAF_CLUSTERS[rnd.randrange(len(LEAF_CLUSTERS))]
+        for loop, c in zip(f.loops, ((u0, v0), (u1, v0), (u1, v1), (u0, v1))):
+            loop[uv].uv = c
+        for v in vs:
+            normals[v] = (v.co - centre).normalized()
+        cards += 1
+
+    mesh = bpy.data.meshes.new(name)
+    bm.verts.index_update()
+    loop_normals = []
+    for f in bm.faces:
+        for loop in f.loops:
+            loop_normals.append(normals.get(loop.vert))
+    bm.to_mesh(mesh)
+    bm.free()
+    # Spherical normals on foliage (soft, volumetric shading); limbs keep their own.
+    custom = [n if n is not None else Vector((0, 0, 0)) for n in loop_normals]
+    mesh.normals_split_custom_set([tuple(n) for n in custom])
+    mesh.materials.append(_material("EG_PH_tree_small_02_leaves", (0.2, 0.35, 0.15)))
+    mesh.materials.append(_material("EG_PH_bark_brown_02", (0.3, 0.22, 0.16)))
+    obj = bpy.data.objects.new(name, mesh)
+    _link(obj, "EG_Nature")
+    return obj, len(mesh.polygons)
+
+
+def build_broadleaves():
+    result = {}
+    for name, seed, h, cr in (("SM_Tree_Broadleaf_A", 5, 11.0, 4.2), ("SM_Tree_Broadleaf_B", 17, 9.0, 3.6), ("SM_Tree_Broadleaf_C", 29, 13.0, 5.0)):
+        obj, faces = broadleaf(name, seed, h, cr)
+        _export(obj, "Vegetation", name)
+        result[name] = faces
+    return result
+
+
 def _import_fbx(path):
     before = set(bpy.data.objects)
     bpy.ops.import_scene.fbx(filepath=path)

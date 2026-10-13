@@ -11,7 +11,14 @@ namespace EclipseGenesis.EditorTools.Art
     public static class ArtLibrary
     {
         public const string Root = ImportedModelConventions.Root;
-        public const string HouseA = Root + "Environment/SM_House_A.fbx";
+        /// <summary>Residential buildings (ArtSource/Blender/Environment/house_builder.py v2, with glass and variants).</summary>
+        public const string HouseA = Root + "Buildings/SM_House_A.fbx";
+        public const string HouseB = Root + "Buildings/SM_House_B.fbx";
+        public const string HouseC = Root + "Buildings/SM_House_C.fbx";
+        public const string HouseD = Root + "Buildings/SM_House_D.fbx";
+        public const string ShopA = Root + "Buildings/SM_Shop_A.fbx";
+        /// <summary>Round-crowned deciduous trees with leaf-cluster cards (nature_builder.py), heights 11 / 9 / 13 m.</summary>
+        public static readonly string[] Broadleaves = { Root + "Vegetation/SM_Tree_Broadleaf_A.fbx", Root + "Vegetation/SM_Tree_Broadleaf_B.fbx", Root + "Vegetation/SM_Tree_Broadleaf_C.fbx" };
         /// <summary>Game-ready pines (ArtSource/Blender/Environment/nature_builder.py), heights 13 / 10 / 8 m.</summary>
         public static readonly string[] Pines = { Root + "Vegetation/SM_Pine_A.fbx", Root + "Vegetation/SM_Pine_B.fbx", Root + "Vegetation/SM_Pine_C.fbx" };
         /// <summary>Decimated Poly Haven scans: boulder (~1.5 m), moss rock set (~8 m cluster), fallen log (~4 m).</summary>
@@ -32,8 +39,8 @@ namespace EclipseGenesis.EditorTools.Art
             go.transform.localPosition = localPos;
             go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
             go.transform.localScale = Vector3.one * scale;
-            if (!colliders)
-                foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+            foreach (var c in go.GetComponentsInChildren<Collider>(true))
+                if (!colliders || c.name.EndsWith("_Glass")) Object.DestroyImmediate(c);   // glass never blocks movement or shots
             foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.isStatic = true;
             return go;
         }

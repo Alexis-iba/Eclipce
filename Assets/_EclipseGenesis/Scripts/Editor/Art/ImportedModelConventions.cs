@@ -43,6 +43,9 @@ namespace EclipseGenesis.EditorTools.Art
                 case "Environment":
                 case "Vehicles":
                 case "Props":
+                case "Buildings":
+                case "Military":
+                case "EnvironmentProps":
                     // Static scenery: real colliders from the mesh (use simple UCX_ collision meshes for heavy assets).
                     importer.addCollider = true;
                     importer.animationType = ModelImporterAnimationType.None;

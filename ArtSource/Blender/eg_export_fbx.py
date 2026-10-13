@@ -20,7 +20,8 @@ import os
 import bpy
 
 PROJECT = r"C:/Users/ibarr/EclipseGenesis"
-CATEGORIES = ("Weapons", "Aliens", "Characters", "Environment", "Vehicles", "Vegetation", "Props")
+CATEGORIES = ("Weapons", "Aliens", "Characters", "Environment", "Vehicles", "Vegetation", "Props",
+              "Buildings", "Military", "EnvironmentProps")
 
 
 def export(category: str, name: str, selection_only: bool = True, forward: str = "-Z") -> str:
