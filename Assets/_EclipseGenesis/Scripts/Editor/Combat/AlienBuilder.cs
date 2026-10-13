@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using EclipseGenesis.AI;
 using EclipseGenesis.Combat;
 using EclipseGenesis.EditorTools.Facility;
@@ -38,10 +39,10 @@ namespace EclipseGenesis.EditorTools.Combat
                 AssetDatabase.CreateAsset(data, DataPath);
             }
             data.speciesName = "Stalker";
-            data.screechClip = ProceduralAudioClips.AlienScreech();
-            data.attackClip = ProceduralAudioClips.AlienAttack();
-            data.hurtClip = ProceduralAudioClips.AlienHurt();
-            data.deathClip = ProceduralAudioClips.AlienDeath();
+            data.screechClip = ProceduralAudioClips.AlienScreechV2();
+            data.attackClip = ProceduralAudioClips.AlienAttackV2();
+            data.hurtClip = ProceduralAudioClips.AlienHurtV2();
+            data.deathClip = ProceduralAudioClips.AlienDeathV2();
             EditorUtility.SetDirty(data);
 
             var root = new GameObject("EG_Alien_Stalker");
@@ -57,6 +58,15 @@ namespace EclipseGenesis.EditorTools.Combat
 
                 var health = root.AddComponent<AlienHealth>();
                 ProtoKit.SetRef(health, "data", data);
+
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(OrganicModelPath) != null)
+                {
+                    BuildOrganic(root, data, health);
+                    FpsTestSceneBuilder.EnsureFolder(Path.GetDirectoryName(PrefabPath));
+                    var organicPrefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                    AssetDatabase.SaveAssets();
+                    return organicPrefab;
+                }
 
                 // ---------------- body
                 var torso = ProtoKit.Group(t, "Torso", new Vector3(0f, 0.78f, 0f));
@@ -145,7 +155,92 @@ namespace EclipseGenesis.EditorTools.Combat
                 bc.height = 1.5f;
                 bodyBox.gameObject.AddComponent<Hitbox>().Configure(HitZone.Body, 1f, health);
 
-                // ---------------- components
+                AddComponents(root, data, health, torso, head, eyeLightGo.transform, eyeLight, clawL, clawR, hips, eyeRenderers.ToArray());
+
+                FpsTestSceneBuilder.EnsureFolder(Path.GetDirectoryName(PrefabPath));
+                var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                AssetDatabase.SaveAssets();
+                return prefab;
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>Organic rigged Stalker from Blender (ArtSource/Blender/Aliens/stalker_builder.py).</summary>
+        public const string OrganicModelPath = "Assets/_EclipseGenesis/Art/Imported/Aliens/SK_Stalker.fbx";
+
+        /// <summary>
+        /// Uses the skinned SK_Stalker: inserts root-aligned pivots above the bones AlienBody drives (so its procedural
+        /// gait / attack / death / head-look deform the mesh exactly like the previous rig), and re-creates the
+        /// hitboxes, eye light and voice on those pivots.
+        /// </summary>
+        private static void BuildOrganic(GameObject root, AlienData data, AlienHealth health)
+        {
+            var model = (GameObject)Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(OrganicModelPath), root.transform);
+            model.name = "Stalker_Model";
+            foreach (var c in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c);
+            Transform Bone(string n) => model.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
+            Transform Pivot(string n)
+            {
+                var bone = Bone(n);
+                var p = new GameObject("Pivot_" + n).transform;
+                p.SetParent(bone.parent, false);
+                p.position = bone.position;
+                p.rotation = root.transform.rotation;
+                bone.SetParent(p, true);
+                return p;
+            }
+            var torso = Pivot("Torso");
+            var head = Pivot("Head");
+            var hips = new[] { Pivot("Leg_FL"), Pivot("Leg_FR"), Pivot("Leg_BL"), Pivot("Leg_BR") };
+            var clawL = Pivot("Shin_FL");
+            var clawR = Pivot("Shin_FR");
+            foreach (var smr in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                smr.updateWhenOffscreen = true;   // procedural bones move the mesh beyond its import bounds
+                smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            }
+            var eyeRenderers = model.GetComponentsInChildren<Renderer>(true).Where(r => r.name.Contains("Eyes")).ToArray();
+
+            var eyeLightGo = new GameObject("EyeGlow");
+            eyeLightGo.transform.SetParent(head, false);
+            eyeLightGo.transform.localPosition = new Vector3(0f, 0.02f, 0.3f);
+            eyeLightGo.AddHDLight(LightType.Point);
+            var eyeLight = eyeLightGo.GetComponent<Light>();
+            eyeLight.lightUnit = LightUnit.Lumen;
+            eyeLight.intensity = 140f;
+            eyeLight.range = 3f;
+            eyeLight.color = new Color(1f, 0.18f, 0.08f);
+            eyeLight.shadows = LightShadows.None;
+
+            var headBox = ProtoKit.Group(head, "Hitbox_Head", new Vector3(0f, 0f, 0.2f));
+            headBox.gameObject.AddComponent<SphereCollider>().radius = 0.2f;
+            headBox.gameObject.AddComponent<Hitbox>().Configure(HitZone.Head, 2.2f, health);
+            foreach (var hip in hips)
+            {
+                var limbBox = ProtoKit.Group(hip, "Hitbox_Limb", new Vector3(Mathf.Sign(hip.localPosition.x) * 0.15f, -0.05f, 0.05f));
+                var lc = limbBox.gameObject.AddComponent<CapsuleCollider>();
+                lc.radius = 0.1f;
+                lc.height = 0.5f;
+                lc.direction = 0;
+                limbBox.gameObject.AddComponent<Hitbox>().Configure(HitZone.Limb, 0.7f, health);
+            }
+            var bodyBox = ProtoKit.Group(torso, "Hitbox_Body", new Vector3(0f, 0.05f, -0.1f));
+            var bc = bodyBox.gameObject.AddComponent<CapsuleCollider>();
+            bc.direction = 2;
+            bc.radius = 0.34f;
+            bc.height = 1.6f;
+            bodyBox.gameObject.AddComponent<Hitbox>().Configure(HitZone.Body, 1f, health);
+
+            AddComponents(root, data, health, torso, head, eyeLightGo.transform, eyeLight, clawL, clawR, hips, eyeRenderers);
+        }
+
+        private static void AddComponents(GameObject root, AlienData data, AlienHealth health, Transform torso, Transform head, Transform eyes,
+            Light eyeLight, Transform clawL, Transform clawR, Transform[] hips, Renderer[] eyeRenderers)
+        {
+            {
                 var voiceGo = new GameObject("Voice");
                 voiceGo.transform.SetParent(head, false);
                 var voice = voiceGo.AddComponent<AudioSource>();
@@ -158,7 +253,7 @@ namespace EclipseGenesis.EditorTools.Combat
 
                 var perception = root.AddComponent<AlienPerception>();
                 ProtoKit.SetRef(perception, "data", data);
-                ProtoKit.SetRef(perception, "eyes", eyeLightGo.transform);
+                ProtoKit.SetRef(perception, "eyes", eyes);
 
                 var brain = root.AddComponent<AlienBrain>();
                 ProtoKit.SetRef(brain, "data", data);
@@ -175,16 +270,7 @@ namespace EclipseGenesis.EditorTools.Combat
                 ProtoKit.SetRef(body, "clawRight", clawR);
                 ProtoKit.SetRef(body, "eyeLight", eyeLight);
                 ProtoKit.SetRefs(body, "legs", hips);
-                ProtoKit.SetRefs(body, "eyeRenderers", eyeRenderers.ToArray());
-
-                FpsTestSceneBuilder.EnsureFolder(Path.GetDirectoryName(PrefabPath));
-                var prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
-                AssetDatabase.SaveAssets();
-                return prefab;
-            }
-            finally
-            {
-                Object.DestroyImmediate(root);
+                ProtoKit.SetRefs(body, "eyeRenderers", eyeRenderers);
             }
         }
     }

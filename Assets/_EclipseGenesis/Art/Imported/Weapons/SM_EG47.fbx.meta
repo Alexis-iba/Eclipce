@@ -7,6 +7,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: EG_Glove
+    second: {fileID: 2100000, guid: 10351f372c4eb56449c6e39bff4e4d61, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: EG_GunAccent
     second: {fileID: 2100000, guid: cda6e95a9505ba84ca046b5e8b4a43a0, type: 2}
   - first:
@@ -34,6 +39,11 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: EG_GunSteel
     second: {fileID: 2100000, guid: c6552b35dfaf3e84587dafd6d33f54a0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: EG_Sleeve
+    second: {fileID: 2100000, guid: 3c165a9f4f8ebb74b80cf0182b21318d, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

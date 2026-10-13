@@ -5,14 +5,15 @@ using EclipseGenesis.Combat;
 namespace EclipseGenesis.AI {
  public sealed class SpitterAttack : MonoBehaviour {
   [SerializeField] Material plasmaMaterial;
+  [SerializeField] Transform mouth;
   AlienBrain brain;AlienHealth health;float nextShot;
   void Awake(){brain=GetComponent<AlienBrain>();health=GetComponent<AlienHealth>();}
   void OnEnable(){if(brain!=null)brain.StateChanged+=StateChanged;}
   void OnDisable(){if(brain!=null)brain.StateChanged-=StateChanged;}
   void StateChanged(AlienState before,AlienState after){if(after==AlienState.Attack&&Time.time>=nextShot){nextShot=Time.time+2.2f;StartCoroutine(Spit());}}
-  IEnumerator Spit(){yield return new WaitForSeconds(.25f);if(health==null||!health.IsAlive)yield break;
+  IEnumerator Spit(){yield return new WaitForSeconds(health!=null&&health.Data!=null?health.Data.attackWindup:.25f);if(health==null||!health.IsAlive)yield break;
    var player=Object.FindFirstObjectByType<PlayerHealth>();if(player==null||!player.IsAlive)yield break;
-   var origin=transform.position+Vector3.up*1.1f+transform.forward*.9f;
+   var origin=mouth!=null?mouth.position:transform.position+Vector3.up*1.1f+transform.forward*.9f;
    var g=GameObject.CreatePrimitive(PrimitiveType.Sphere);g.name="Spitter_Plasma";Destroy(g.GetComponent<Collider>());g.transform.position=origin;g.transform.localScale=Vector3.one*.22f;
    g.GetComponent<Renderer>().sharedMaterial=plasmaMaterial;g.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
    var projectile=g.AddComponent<OrganicProjectile>();projectile.Init((player.transform.position+Vector3.up*.9f-origin).normalized*16,gameObject,18);

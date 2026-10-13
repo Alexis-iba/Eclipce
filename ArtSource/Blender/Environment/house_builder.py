@@ -27,6 +27,7 @@ MATS = {
     "EG_Siding_D": (0.6, 0.55, 0.45), "EG_Trim": (0.85, 0.84, 0.8), "EG_Roof": (0.18, 0.18, 0.2),
     "EG_Concrete": (0.5, 0.5, 0.48), "EG_WoodFloor": (0.45, 0.33, 0.22), "EG_Plaster": (0.8, 0.78, 0.74),
     "EG_Brick": (0.5, 0.25, 0.2), "EG_Door": (0.25, 0.3, 0.35), "EG_Metal": (0.4, 0.4, 0.42), "EG_Glass": (0.6, 0.7, 0.75),
+    "EG_Plank": (0.4, 0.3, 0.2),
 }
 PITCH = math.radians(35)
 
@@ -120,8 +121,9 @@ class Wall:
     def door(self, u0, u1, z0, z1, leaf="open", glass_panel=False):
         self.openings.append(dict(u0=u0, u1=u1, z0=z0, z1=z1, kind="door", leaf=leaf, glass_panel=glass_panel))
 
-    def window(self, u0, u1, z0, z1, broken=False, shutters=False, storefront=False):
-        self.openings.append(dict(u0=u0, u1=u1, z0=z0, z1=z1, kind="window", broken=broken, shutters=shutters, storefront=storefront))
+    def window(self, u0, u1, z0, z1, broken=False, shutters=False, storefront=False, boarded=False):
+        self.openings.append(dict(u0=u0, u1=u1, z0=z0, z1=z1, kind="window", broken=broken or boarded, shutters=shutters,
+                                  storefront=storefront, boarded=boarded))
 
     def p(self, u, w, z):
         return self.o + self.u * u + self.n * w + Vector((0, 0, z))
@@ -178,11 +180,16 @@ class Wall:
                 self.piece(um - 0.02, um + 0.02, mid_w0, mid_w1, zm, z1, trim, inner=False)                 # upper muntin
                 panes = [(u0 + fr, u1 - fr, z0 + fr, zm - 0.03), (u0 + fr, u1 - fr, zm + 0.03, z1 - fr)]
             for i, (a, b_, c, d) in enumerate(panes):
-                if o.get("broken") and (i == 0 or random.random() < 0.5):
+                if o.get("boarded") or (o.get("broken") and (i == 0 or random.random() < 0.5)):
                     continue
                 self.piece(a, b_, t * 0.44, t * 0.46, c, d, "EG_Glass", inner=False, target=self.g)
             if not o.get("storefront") and z0 > self.z0 + 0.05:
                 self.piece(u0 - 0.15, u1 + 0.15, -0.1, 0.06, z0 - 0.06, z0, "EG_Trim", inner=False)    # sill
+            if o.get("boarded"):
+                # Planks nailed across the opening (looted / abandoned houses).
+                for k, zb in enumerate((z0 + 0.18, (z0 + z1) * 0.5 - 0.08, z1 - 0.3)):
+                    off = random.uniform(-0.06, 0.06)
+                    self.piece(u0 - 0.12 + off, u1 + 0.12 + off, -0.075 - 0.004 * k, -0.048, zb, zb + random.uniform(0.15, 0.2), "EG_Plank", inner=False)
             if o.get("shutters"):
                 sw = min(0.5, (u1 - u0) * 0.45)
                 self.piece(u0 - w - sw, u0 - w - 0.02, -0.09, -0.05, z0, z1, "EG_Door", inner=False)
@@ -220,7 +227,7 @@ def _export(objs, category, name):
 
 
 def build_house(name="SM_House_A", W=9.0, D=8.0, floors=2, porch=True, chimney=True, siding="EG_Siding",
-                broken=0.25, shutters=False, door_leaf="open", seed=1, export_fbx=False, category="Buildings"):
+                broken=0.25, shutters=False, door_leaf="open", seed=1, export_fbx=False, category="Buildings", boarded=0.0):
     random.seed(seed)
     b, g = Builder(name), Builder(name + "_Glass")
     T, F = 0.2, 0.45
@@ -238,18 +245,19 @@ def build_house(name="SM_House_A", W=9.0, D=8.0, floors=2, porch=True, chimney=T
     win_lo, win_hi = 0.95, 2.3
     lv = [F] + ([L2] if floors == 2 else [])
     R = lambda: random.random() < broken
+    B = lambda: random.random() < boarded
 
     front = Wall(b, g, (-hx, hy, 0), (1, 0, 0), (0, -1, 0), W, T, F, WTOP, siding, "EG_Plaster")
     front.door(W / 2 - 0.55, W / 2 + 0.55, F, F + 2.25, leaf=door_leaf, glass_panel=True)
     for u in (W * 0.11, W - W * 0.11 - 1.4):
-        front.window(u, u + 1.4, F + win_lo, F + win_hi, broken=R(), shutters=shutters)
+        front.window(u, u + 1.4, F + win_lo, F + win_hi, broken=R(), shutters=shutters, boarded=B())
     if floors == 2:
         for u in (W * 0.11, W / 2 - 0.6, W - W * 0.11 - 1.4):
             front.window(u, u + (1.2 if abs(u - (W / 2 - 0.6)) < 0.01 else 1.4), L2 + win_lo, L2 + win_hi, broken=R(), shutters=shutters)
 
     back = Wall(b, g, (hx, -hy, 0), (-1, 0, 0), (0, 1, 0), W, T, F, WTOP, siding, "EG_Plaster")
     back.door(W - 3.0, W - 2.0, F, F + 2.25, leaf="closed")
-    back.window(W * 0.36, W * 0.36 + 1.2, F + win_lo, F + win_hi, broken=R())
+    back.window(W * 0.36, W * 0.36 + 1.2, F + win_lo, F + win_hi, broken=R(), boarded=B())
     if floors == 2:
         for u in (W * 0.17, W - W * 0.17 - 1.4):
             back.window(u, u + 1.4, L2 + win_lo, L2 + win_hi, broken=R())
@@ -259,8 +267,8 @@ def build_house(name="SM_House_A", W=9.0, D=8.0, floors=2, porch=True, chimney=T
     right = Wall(b, g, (hx, iy, 0), (0, -1, 0), (-1, 0, 0), side_len, T, F, WTOP, siding, "EG_Plaster")
     for z in lv:
         for u in (side_len * 0.16, side_len * 0.66):
-            left.window(u, u + 1.2, z + win_lo, z + win_hi, broken=R())
-    right.window(side_len * 0.13, side_len * 0.13 + 1.2, F + win_lo, F + win_hi, broken=R())
+            left.window(u, u + 1.2, z + win_lo, z + win_hi, broken=R(), boarded=B() and z < 1.0)
+    right.window(side_len * 0.13, side_len * 0.13 + 1.2, F + win_lo, F + win_hi, broken=R(), boarded=B())
     if floors == 2:
         right.window(side_len * 0.13, side_len * 0.13 + 1.2, L2 + win_lo, L2 + win_hi, broken=R())
         right.window(side_len * 0.6, side_len * 0.6 + 1.2, L2 + win_lo, L2 + win_hi, broken=R())
@@ -442,8 +450,8 @@ def build_street_set():
     """Variants used by the residential street (Eclipse_Genesis_OpenWorld_Realistic)."""
     out = []
     out.append(build_house("SM_House_A", 9.0, 8.0, 2, True, True, "EG_Siding", 0.25, False, "open", 1, True))
-    out.append(build_house("SM_House_B", 8.0, 7.6, 1, True, True, "EG_Siding_B", 0.35, True, "closed", 2, True))
-    out.append(build_house("SM_House_C", 10.0, 8.4, 2, False, True, "EG_Siding_C", 0.3, True, "closed", 3, True))
-    out.append(build_house("SM_House_D", 8.6, 8.0, 2, True, False, "EG_Siding_D", 0.5, False, "closed", 4, True))
+    out.append(build_house("SM_House_B", 8.0, 7.6, 1, True, True, "EG_Siding_B", 0.35, True, "closed", 2, True, boarded=0.35))
+    out.append(build_house("SM_House_C", 10.0, 8.4, 2, False, True, "EG_Siding_C", 0.4, True, "closed", 3, True, boarded=0.2))
+    out.append(build_house("SM_House_D", 8.6, 8.0, 2, True, False, "EG_Siding_D", 0.6, False, "closed", 4, True, boarded=0.7))
     out.append(build_shop("SM_Shop_A", export_fbx=True))
     return out

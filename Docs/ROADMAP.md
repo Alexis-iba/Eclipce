@@ -102,6 +102,10 @@ Todo se regenera con **Eclipse Genesis → Build → Everything** (`FullBuild`).
 - Escena nueva `Eclipse_Genesis_OpenWorld_Realistic` (calle residencial de 100 × 100 m) con casas de Blender, casa explorable, calle, aceras, vegetación, postes y cables, barricada, iluminación HDRP y el EG-47 nuevo de Blender (`VM_EG47_Detailed`, asignado en `EG47.asset`; el prefab provisional se conserva).
 - Pendiente: sedán quemado, brazos y guantes, y aliens (IA 3D, requiere tu clave); medir FPS jugando; ampliar el barrio y la base Genesis.
 
+## Pulido táctico de la calle ✅ automático · 🟡 pendiente de tu partida (2026-10-13)
+- Rifle EG-47 v2 con guantes, Stalker orgánico con rig, audio nuevo, props de guerra, ventanas tapiadas, calcomanías de daño, iluminación sin quemar y HUD compacto. Detalle en `REFERENCE_COMPARISON.md` §6.
+- Tests: EditMode 26/26. PlayMode: 34 pasan y 2 se omiten en la suite completa; los 3 de movimiento que fallan en la suite pasan al ejecutarlos solos (sensibles al framerate con el Editor sin foco).
+
 ## FASE 6: Laboratorio jugable ✅ (cubierto por Genesis_Research_Facility y la sala de investigación)
 ## FASE 7: Menú de pausa y configuración ⏳ (el HUD ya está hecho)
 ## FASE 8: Checkpoints ⏳ (la misión ya está hecha)

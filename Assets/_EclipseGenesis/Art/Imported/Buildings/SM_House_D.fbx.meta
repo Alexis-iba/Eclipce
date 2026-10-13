@@ -27,6 +27,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: EG_Plank
+    second: {fileID: 2100000, guid: a4805d836b31f9e4091a447b49a13b56, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: EG_Plaster
     second: {fileID: 2100000, guid: f33a20b3c2f83d548bd7feb29806d58c, type: 2}
   - first:

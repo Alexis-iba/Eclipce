@@ -55,6 +55,42 @@ namespace EclipseGenesis.EditorTools.Facility
             return 1.1f * crack + 0.9f * body + tail + mech;
         }));
 
+        /// <summary>
+        /// EG-47 v2 outdoor shot: broadband muzzle blast, pitch-dropping low boom, high-mid snap, bolt clacks,
+        /// two slapback echoes off the houses and a long rumbling tail; soft-saturated for punch.
+        /// </summary>
+        public static AudioClip RifleShotV2() => Get("Wpn_EG47_Shot_v2", () =>
+        {
+            float lp1 = 0f, lp2 = 0f, hp = 0f, prev = 0f, lpEcho = 0f;
+            var echo = new float[Rate];
+            int n = 0;
+            return OneShot(1.6f, (t, rnd, s) =>
+            {
+                float w = s.White(rnd);
+                lp1 += (w - lp1) * 0.35f;                       // ~3.5 kHz
+                hp = 0.92f * (hp + lp1 - prev); prev = lp1;     // high-pass -> snap band
+                lp2 += (s.Brown(rnd) - lp2) * 0.02f;            // rumble
+                float blast = w * Mathf.Exp(-t * 900f) * 1.4f;
+                float snap = hp * Mathf.Exp(-t * 40f) * 2.2f;
+                float f = Mathf.Lerp(95f, 38f, Mathf.Clamp01(t * 6f));
+                float boom = Mathf.Sin(2f * Mathf.PI * f * t) * Mathf.Exp(-t * 9f) * 1.3f;
+                float Clack(float at, float freq) => t >= at ? Mathf.Sin(2f * Mathf.PI * freq * (t - at)) * Mathf.Exp(-(t - at) * 160f) : 0f;
+                float mech = 0.35f * Clack(0.028f, 2600f) + 0.3f * Clack(0.052f, 1350f);
+                float tail = lp2 * Mathf.Exp(-t * 2.4f) * 6f * Mathf.Clamp01(t * 20f);
+                float dry = blast + snap + boom + mech + tail;
+                // Slapback echoes (120 ms and 270 ms), low-passed.
+                float e = 0f;
+                int i120 = n - (int)(0.12f * Rate), i270 = n - (int)(0.27f * Rate);
+                if (i120 >= 0 && i120 < echo.Length) e += echo[i120] * 0.38f;
+                if (i270 >= 0 && i270 < echo.Length) e += echo[i270] * 0.22f;
+                lpEcho += (e - lpEcho) * 0.18f;
+                if (n < echo.Length) echo[n] = blast + snap;
+                n++;
+                float x = dry + lpEcho;
+                return (float)System.Math.Tanh(x * 1.6f);
+            });
+        });
+
         public static AudioClip RifleReload() => Get("Wpn_EG47_Reload", () => OneShot(2.3f, (t, rnd, s) =>
         {
             float Click(float at, float decay, float freq) => t >= at ? Mathf.Sin(2f * Mathf.PI * freq * (t - at)) * Mathf.Exp(-(t - at) * decay) : 0f;
@@ -77,6 +113,66 @@ namespace EclipseGenesis.EditorTools.Facility
             float env = Mathf.Clamp01(t / 0.05f) * Mathf.Exp(-t * 2.5f);
             return env * (0.6f * Mathf.Sin(2f * Mathf.PI * f * t) + 0.4f * s.Pink(rnd));
         }));
+
+        /// <summary>Stalker v2 voice: formant-filtered vocal rasp with vibrato, a 32 Hz growl modulation and a sub roar.</summary>
+        private static float AlienVoice(float t, float f0, float rasp, float growl, ref float bp1, ref float bp2, System.Random rnd, State s)
+        {
+            float vib = 1f + 0.04f * Mathf.Sin(2f * Mathf.PI * 7f * t) + 0.02f * (s.Pink(rnd));
+            float ph = 2f * Mathf.PI * f0 * vib * t;
+            float voice = 0f;
+            for (int h = 1; h <= 9; h++) voice += Mathf.Sin(ph * h + h * 0.7f) / (h * 0.9f);   // buzzy source
+            float noise = s.White(rnd);
+            bp1 += (noise - bp1) * 0.25f;
+            bp2 += (bp1 - bp2) * 0.25f;
+            float raspy = (bp1 - bp2) * rasp;
+            float am = 1f - growl * (0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * 32f * t));
+            float sub = Mathf.Sin(ph * 0.5f) * 0.6f;
+            return (voice * 0.35f + raspy * 2.5f + sub) * am;
+        }
+
+        public static AudioClip AlienScreechV2() => Get("Alien_Stalker_Screech_v2", () =>
+        {
+            float a = 0f, b = 0f;
+            return OneShot(1.5f, (t, rnd, s) =>
+            {
+                float f0 = Mathf.Lerp(310f, 520f, Mathf.Clamp01(t / 0.35f)) - Mathf.Clamp01((t - 0.6f) / 0.9f) * 260f;
+                float env = Mathf.Clamp01(t / 0.06f) * (t < 0.9f ? 1f : Mathf.Exp(-(t - 0.9f) * 5f));
+                return (float)System.Math.Tanh(env * AlienVoice(t, f0, 1.4f, 0.55f, ref a, ref b, rnd, s) * 1.4f);
+            });
+        });
+
+        public static AudioClip AlienAttackV2() => Get("Alien_Stalker_Attack_v2", () =>
+        {
+            float a = 0f, b = 0f;
+            return OneShot(0.6f, (t, rnd, s) =>
+            {
+                float env = Mathf.Clamp01(t / 0.015f) * Mathf.Exp(-t * 5f);
+                float f0 = Mathf.Lerp(190f, 120f, t / 0.6f);
+                return (float)System.Math.Tanh(env * AlienVoice(t, f0, 2.2f, 0.8f, ref a, ref b, rnd, s) * 1.8f);
+            });
+        });
+
+        public static AudioClip AlienDeathV2() => Get("Alien_Stalker_Death_v2", () =>
+        {
+            float a = 0f, b = 0f;
+            return OneShot(2.2f, (t, rnd, s) =>
+            {
+                float f0 = Mathf.Lerp(260f, 55f, Mathf.Clamp01(t / 1.8f)) * (1f + 0.15f * Mathf.Sin(2f * Mathf.PI * 9f * t));
+                float env = Mathf.Clamp01(t / 0.03f) * Mathf.Exp(-t * 1.4f);
+                float gurgle = s.Brown(rnd) * (0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * 13f * t));
+                return (float)System.Math.Tanh(env * (AlienVoice(t, f0, 1.8f, 0.7f, ref a, ref b, rnd, s) + gurgle * 1.5f) * 1.3f);
+            });
+        });
+
+        public static AudioClip AlienHurtV2() => Get("Alien_Stalker_Hurt_v2", () =>
+        {
+            float a = 0f, b = 0f;
+            return OneShot(0.4f, (t, rnd, s) =>
+            {
+                float env = Mathf.Clamp01(t / 0.01f) * Mathf.Exp(-t * 9f);
+                return (float)System.Math.Tanh(env * AlienVoice(t, Mathf.Lerp(480f, 330f, t / 0.4f), 1.6f, 0.4f, ref a, ref b, rnd, s) * 1.5f);
+            });
+        });
 
         public static AudioClip AlienAttack() => Get("Alien_Stalker_Attack", () => OneShot(0.45f, (t, rnd, s) =>
         {

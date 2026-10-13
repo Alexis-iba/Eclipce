@@ -35,7 +35,7 @@ MonoBehaviour:
   attackRecovery: 0.55
   attackCooldown: 0.6
   attackReachTolerance: 0.35
-  screechClip: {fileID: 8300000, guid: 8d4742c9c77f6e247aaff2e96299e144, type: 3}
-  attackClip: {fileID: 8300000, guid: 83e2581806db21040934992d9a097ccb, type: 3}
-  hurtClip: {fileID: 8300000, guid: 81ebf3b1ad8f25544b2540348aebdd50, type: 3}
-  deathClip: {fileID: 8300000, guid: 532999567c3139247a3f8bf28c55fbb1, type: 3}
+  screechClip: {fileID: 8300000, guid: 117e68a5731b8e54183f9f3d7de56f7f, type: 3}
+  attackClip: {fileID: 8300000, guid: a947e176371fde3498370f0345c98e16, type: 3}
+  hurtClip: {fileID: 8300000, guid: 8065cd14e3f7c8747a90f299a5416d5d, type: 3}
+  deathClip: {fileID: 8300000, guid: 65ed2be4f46c01344bcd89a16e3f3316, type: 3}

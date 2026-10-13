@@ -1,0 +1,99 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+using UnityEditor;
+using UnityEditor.Animations;
+using UnityEditor.SceneManagement;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
+using EclipseGenesis.AI;
+using EclipseGenesis.Combat;
+using EclipseGenesis.EditorTools.Combat;
+namespace EclipseGenesis.EditorTools {
+ public static class ReferenceAlienBuilder {
+  public const string Folder="Assets/_EclipseGenesis/Art/Imported/Aliens/ReferenceV1";
+  public const string PrefabFolder="Assets/_EclipseGenesis/Prefabs/Aliens/ReferenceV1";
+  public const string ReviewScene="Assets/_EclipseGenesis/Scenes/Eclipse_AlienReferenceReview.unity";
+  static void FolderReady(string p){EclipseGenesis.EditorTools.FpsTestSceneBuilder.EnsureFolder(p);}
+  static Material Mat(string source) {
+   string path=Folder+"/"+source+".mat";var existing=AssetDatabase.LoadAssetAtPath<Material>(path);if(existing!=null)return existing;
+   var m=new Material(Shader.Find("HDRP/Lit"));m.name=source;m.SetFloat("_Metallic",.55f);m.SetFloat("_Smoothness",.43f);Color c=new Color(.065f,.055f,.06f);float emission=0;
+   if(source.Contains("Obsidian")){m.SetTexture("_BaseColorMap",AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/_EclipseGenesis/Art/OpenZoneArt/AlienChitin.png"));c=new Color(.52f,.53f,.55f);}
+   if(source.Contains("Bone"))c=new Color(.26f,.19f,.14f);
+   if(source.Contains("Organic")){c=new Color(.055f,.022f,.025f);m.SetFloat("_Metallic",.1f);}
+   if(source.Contains("Mouth"))c=new Color(.006f,.004f,.005f);
+   if(source.Contains("StalkerBlue")){c=new Color(.025f,.26f,1);emission=28;}
+   if(source.Contains("RavagerOrange")){c=new Color(1,.08f,.004f);emission=18;}
+   if(source.Contains("SpitterGreen")){c=new Color(.33f,1,.015f);emission=8;}
+   if(source.Contains("Toxic")){c=new Color(.12f,.28f,.006f);m.SetFloat("_Smoothness",.88f);m.SetFloat("_Metallic",.1f);}
+   m.SetColor("_BaseColor",c);m.SetColor("_EmissiveColor",c*emission);
+   HDShaderUtilsSafe(m);AssetDatabase.CreateAsset(m,path);return m;
+  }
+  static void HDShaderUtilsSafe(Material m){HDMaterial.ValidateMaterial(m);}
+  static GameObject Build(string species) {
+   FolderReady(PrefabFolder);
+   var root=new GameObject("EG_Alien_"+species+"_Reference");
+   var asset=AssetDatabase.LoadAssetAtPath<GameObject>(Folder+"/SK_"+species+"_Reference.fbx");if(asset==null)throw new InvalidOperationException("Model missing "+species);
+   var model=UnityEngine.Object.Instantiate(asset,root.transform);model.name="Visual_"+species;
+   foreach(var r in model.GetComponentsInChildren<Renderer>()){
+    r.sharedMaterials=r.sharedMaterials.Select(m=>Mat(m.name)).ToArray();
+    var sk=r as SkinnedMeshRenderer;if(sk!=null){sk.updateWhenOffscreen=true;}
+   }
+   var renderers=model.GetComponentsInChildren<Renderer>();var bounds=renderers[0].bounds;foreach(var r in renderers.Skip(1))bounds.Encapsulate(r.bounds);
+   float targetHeight=species=="Ravager"?3.5f:species=="Spitter"?2.5f:2f;float scale=targetHeight/bounds.size.y;
+   model.transform.localScale=Vector3.one*scale;model.transform.localPosition=Vector3.up*(-bounds.min.y*scale);
+   var anim=model.GetComponent<Animator>();if(anim==null)anim=model.AddComponent<Animator>();anim.applyRootMotion=false;anim.cullingMode=AnimatorCullingMode.AlwaysAnimate;
+   string controllerPath=Folder+"/"+species+".controller";var ctrl=AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);if(ctrl==null)ctrl=AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+   var clips=AssetDatabase.LoadAllAssetsAtPath(Folder+"/SK_"+species+"_Reference.fbx").OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__")).ToArray();
+   foreach(string state in new[]{"Idle","Walk","Run","Attack","Hit","Death"}){var st=ctrl.layers[0].stateMachine.states.Select(x=>x.state).FirstOrDefault(x=>x.name==state);if(st==null)st=ctrl.layers[0].stateMachine.AddState(state);st.motion=clips.Single(c=>c.name.EndsWith(species+"_"+state));if(state=="Idle")ctrl.layers[0].stateMachine.defaultState=st;}
+   anim.runtimeAnimatorController=ctrl;
+   var original=AssetDatabase.LoadAssetAtPath<AlienData>("Assets/_EclipseGenesis/Data/AI/Stalker.asset");var data=UnityEngine.Object.Instantiate(original);data.name=species+"_Reference";data.speciesName=species;
+   data.maxHealth=species=="Ravager"?480:species=="Spitter"?170:120;data.armor=species=="Ravager"?.22f:0;
+   data.patrolSpeed=species=="Ravager"?1.3f:2.1f;data.chaseSpeed=species=="Ravager"?3.2f:species=="Spitter"?4:7;
+   data.attackDamage=species=="Ravager"?38:species=="Spitter"?0:18;data.attackRange=species=="Spitter"?16:species=="Ravager"?3.1f:2.1f;
+   data.attackWindup=species=="Ravager"?.65f:species=="Spitter"?.32f:.30f;data.attackRecovery=species=="Ravager"?.8f:species=="Spitter"?1.3f:.50f;
+   data.attackCooldown=species=="Spitter"?2.3f:species=="Ravager"?1.1f:.7f;
+   var existingData=AssetDatabase.LoadAssetAtPath<AlienData>(Folder+"/"+species+"_Data.asset");if(existingData!=null){EditorUtility.CopySerialized(data,existingData);UnityEngine.Object.DestroyImmediate(data);data=existingData;EditorUtility.SetDirty(data);}else AssetDatabase.CreateAsset(data,Folder+"/"+species+"_Data.asset");
+   var agent=root.AddComponent<NavMeshAgent>();agent.height=targetHeight;agent.radius=species=="Ravager"?.7f:species=="Spitter"?.62f:.4f;agent.speed=data.patrolSpeed;agent.obstacleAvoidanceType=ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+   var health=root.AddComponent<AlienHealth>();health.Data=data;
+   var head=model.GetComponentsInChildren<Transform>().Single(t=>t.name=="Head");
+   var mouth=new GameObject("Socket_Mouth").transform;mouth.SetParent(head,false);mouth.position=head.position+Vector3.up*(species=="Spitter"?-.32f:species=="Ravager"?.245f:.01f)*scale+root.transform.forward*(species=="Spitter"?1.26f:species=="Ravager"?.41f:.27f)*scale;
+   var voice=root.AddComponent<AudioSource>();voice.spatialBlend=1;voice.minDistance=2;voice.maxDistance=38;voice.playOnAwake=false;voice.dopplerLevel=0;
+   var perception=root.AddComponent<AlienPerception>();ProtoKit.SetRef(perception,"data",data);ProtoKit.SetRef(perception,"eyes",mouth);
+   var brain=root.AddComponent<AlienBrain>();ProtoKit.SetRef(brain,"data",data);ProtoKit.SetRef(brain,"health",health);ProtoKit.SetRef(brain,"perception",perception);ProtoKit.SetRef(brain,"voice",voice);
+   var bodyCollider=root.AddComponent<CapsuleCollider>();bodyCollider.height=targetHeight*.8f;bodyCollider.radius=agent.radius;bodyCollider.center=Vector3.up*targetHeight*.45f;
+   root.AddComponent<Hitbox>().Configure(HitZone.Body,1,health);
+   var hb=new GameObject("Hitbox_Head");hb.transform.SetParent(head,false);hb.transform.position=head.position+Vector3.up*(species=="Spitter"?-.16f:species=="Ravager"?.41f:.13f)*scale+root.transform.forward*(species=="Spitter"?.77f:-.09f)*scale;hb.AddComponent<SphereCollider>().radius=.23f/scale;hb.AddComponent<Hitbox>().Configure(HitZone.Head,2.2f,health);
+   var motion=root.AddComponent<ReferenceAlienMotion>();ProtoKit.SetRef(motion,"animator",anim);ProtoKit.SetRef(motion,"mouth",mouth);var motionSettings=new SerializedObject(motion);motionSettings.FindProperty("corrosive").boolValue=species=="Spitter";motionSettings.ApplyModifiedPropertiesWithoutUndo();
+   if(species=="Spitter"){
+    var acid=Mat("Reference_SpitterGreen");ProtoKit.SetRef(motion,"acidMaterial",acid);
+    var temp=GameObject.CreatePrimitive(PrimitiveType.Sphere);ProtoKit.SetRef(motion,"dropletMesh",temp.GetComponent<MeshFilter>().sharedMesh);UnityEngine.Object.DestroyImmediate(temp);
+    var attack=root.AddComponent<SpitterAttack>();ProtoKit.SetRef(attack,"plasmaMaterial",acid);
+    var so=new SerializedObject(attack);var prop=so.FindProperty("mouth");if(prop!=null){prop.objectReferenceValue=mouth;so.ApplyModifiedPropertiesWithoutUndo();}
+   }
+   var prefab=PrefabUtility.SaveAsPrefabAsset(root,PrefabFolder+"/EG_Alien_"+species+"_Reference.prefab");UnityEngine.Object.DestroyImmediate(root);return prefab;
+  }
+  public static void BuildAndInstall(){
+   if(EditorApplication.isPlaying)throw new InvalidOperationException("Exit Play first");
+   var scene=UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+   var prefabs=new[]{"Stalker","Ravager","Spitter"}.Select(Build).ToArray();
+   var existing=UnityEngine.Object.FindObjectsByType<AlienHealth>(FindObjectsInactive.Include,FindObjectsSortMode.None);
+   foreach(var old in existing){
+    string s=old.Data!=null?old.Data.speciesName:"Stalker";int index=s=="Ravager"?1:s=="Spitter"?2:0;
+    var g=(GameObject)PrefabUtility.InstantiatePrefab(prefabs[index],old.transform.parent);g.transform.SetPositionAndRotation(old.transform.position,old.transform.rotation);g.name=old.name+"_Reference";
+    var so=new SerializedObject(old.GetComponent<AlienBrain>());var routes=so.FindProperty("patrolPoints");var ns=new SerializedObject(g.GetComponent<AlienBrain>());var points=ns.FindProperty("patrolPoints");points.arraySize=routes.arraySize;for(int i=0;i<routes.arraySize;i++)points.GetArrayElementAtIndex(i).objectReferenceValue=routes.GetArrayElementAtIndex(i).objectReferenceValue;ns.ApplyModifiedPropertiesWithoutUndo();
+    // Preserve mission references if the current scene already owns these aliens.
+    foreach(var manager in UnityEngine.Object.FindObjectsByType<EclipseGenesis.Mission.MissionManager>(FindObjectsInactive.Include,FindObjectsSortMode.None)){
+     var ms=new SerializedObject(manager);var list=ms.FindProperty("aliens");for(int i=0;i<list.arraySize;i++)if(list.GetArrayElementAtIndex(i).objectReferenceValue==old)list.GetArrayElementAtIndex(i).objectReferenceValue=g.GetComponent<AlienHealth>();ms.ApplyModifiedPropertiesWithoutUndo();}
+    g.SetActive(old.gameObject.activeSelf);old.gameObject.SetActive(false);
+   }
+   var root=new GameObject("ReferenceAliens_StreetEncounters").transform;
+   var positions=new[]{new Vector3(-3,0,2),new Vector3(2.5f,0,35),new Vector3(-2,0,19)};
+   for(int i=0;i<3;i++){NavMeshHit hit;if(!NavMesh.SamplePosition(positions[i],out hit,8,NavMesh.AllAreas))throw new InvalidOperationException("Missing navigation at alien spawn");
+    var g=(GameObject)PrefabUtility.InstantiatePrefab(prefabs[i],root);g.transform.SetPositionAndRotation(hit.position,Quaternion.Euler(0,180,0));}
+   EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();
+  }
+ }
+}

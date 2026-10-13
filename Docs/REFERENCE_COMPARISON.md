@@ -145,3 +145,62 @@ Escena nueva **`Scenes/Eclipse_Genesis_OpenWorld_Realistic.unity`**, generada co
 - NavMesh horneado, cubre la calle y el interior.
 - Escena: 868 mallas, unos 1,24 millones de triángulos y 13 luces.
 - **Rendimiento en juego todavía sin medir en esta escena.** Como referencia, `Genesis_Outpost` dio unos 80 FPS a 2560×1440 en tu equipo.
+
+## 6. Pulido táctico (2026-10-13)
+
+### Fase 1: inspección de la escena antes del pulido
+| Elemento | Estado antes | Valoración |
+|---|---|---|
+| EG-47 v1 (Blender) | Cajas biseladas, mira sin ventana, brazos de cápsulas | **Rompía el realismo**: arma "de bloque" |
+| Stalker | Unas 40 primitivas (esferas y cápsulas), morado y cian | **Rompía el realismo** |
+| Casas `SM_House_*` | Fachadas, cristales y porches correctos, pero limpias | Sirven; faltaba desgaste |
+| Calle | Asfalto, aceras, postes y hierba correctos; vacía de basura y daños | Sirve; faltaba ambientación de guerra |
+| Coches | `covered_car` (lona) | Sirven como relleno; faltaban coches dañados |
+| Iluminación | Sol quemado en la zona del sol, bloom y halo de niebla excesivos | **Había que corregirla** |
+| HUD | Funcional pero grande | Había que compactarlo |
+| Audio | Disparo y voces sintéticos simples | Había que mejorarlo |
+
+### Fases 2–5: resultado (capturas FPS reales: `Docs/Reference/result_*_v2.png`)
+
+**Rifle (`eg47_builder.py` v2, unos 26.000 triángulos incluidas las manos):**
+- cañón, bocacha y tubo de culata torneados;
+- cortes booleanos reales: ventana de expulsión, ranuras M-LOK, aligeramientos de la culata y ventanas del cargador;
+- raíl con ranuras, pasadores, selector, retén del cierre y guardamonte curvo;
+- mira holográfica con capuchón arqueado, cristal y retícula emisiva;
+- linterna, empuñadura redondeada con estriado, cargador curvo con nervios, culata con carrillera;
+- **guantes y mangas** posados en la empuñadura y el agarre, que sustituyen a los brazos de cápsulas.
+
+Se conservan el ADS, la recarga procedural (mueve `Arm_L` y `Magazine`), el fogonazo, la eyección de casquillos y el retroceso. El disparo nuevo (`RifleShotV2`) tiene estallido, golpe grave, chasquido, clac del cerrojo, ecos de calle y cola.
+
+**Stalker (`stalker_builder.py`, unos 15.000 triángulos):**
+- piel orgánica continua (modificador Skin, subdivisión y relieve quitinoso);
+- placas de caparazón, púas dorsales, cresta, mandíbulas y dientes;
+- garras curvas, venas y ojos rojos emisivos;
+- postura encorvada.
+
+Lleva rig con los huesos de `AlienBody`, que anima caminar, correr, atacar, morir y mirar al jugador deformando la malla. Las hitboxes y la IA se mantienen. Voces nuevas: chillido con formantes, ataque, dolor y muerte gorgoteante.
+
+**Calle:**
+- sedanes quemados y abandonados (Blender);
+- escombros: ladrillos, tablones, hormigón con varilla, bolsas de basura y papeles;
+- checkpoint con gaviones, concertina, sacos terreros y cajas de munición;
+- señales con texto (ALTO, ZONA EVACUADA, PELIGRO CUARENTENA GENESIS, CHECKPOINT MILITAR, ELM ST);
+- ventanas tapiadas;
+- mugre en la base de las fachadas, chorretones, ráfagas de impactos de bala y quemaduras.
+
+**Iluminación:**
+- sol a 21.000 lux;
+- compensación de exposición de +0,95;
+- bloom de 0,06 con umbral 1,2;
+- anisotropía de la niebla de 0,42 (antes un halo enorme alrededor del sol);
+- contraste de +16, saturación de −4 y lift/gain algo fríos.
+
+Nota: el cielo físico necesita unos segundos para converger. Las capturas tomadas en el primer fotograma salen sepia y no son representativas.
+
+**HUD:** radar de 176 px, paneles más pequeños y márgenes de 32 px. La lista de objetivos ocupa 350 × 130 px.
+
+**Diferencias que quedan frente a la referencia:**
+- los brazos son guantes simples, sin modelado anatómico;
+- el Stalker es más pequeño y menos detallado que el concept;
+- los coches son de calidad media;
+- no hay fuego ni humo (VFX).

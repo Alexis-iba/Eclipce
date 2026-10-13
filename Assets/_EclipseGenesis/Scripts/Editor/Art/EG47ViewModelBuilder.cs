@@ -63,11 +63,23 @@ namespace EclipseGenesis.EditorTools.Art
                 if (wm.muzzleFlash != null) { wm.muzzleFlash.transform.SetParent(wm.muzzle, false); wm.muzzleFlash.transform.localPosition = Vector3.zero; }
                 if (wm.muzzleLight != null) { wm.muzzleLight.transform.SetParent(wm.muzzle, false); wm.muzzleLight.transform.localPosition = new Vector3(0f, 0f, 0.02f); }
 
-                // Hands onto the new grip (model origin) and the angled foregrip (Blender (0, 0.335, -0.01)).
-                Vector3 newGrip = model.transform.TransformPoint(new Vector3(0f, -0.03f, -0.02f));
-                Vector3 newFore = model.transform.TransformPoint(new Vector3(0f, -0.005f, 0.335f));
-                armR.position += newGrip - gripPos;
-                armL.position += newFore - leftHand;
+                var modelArmL = Find(model.transform, "Arm_L");
+                var modelArmR = Find(model.transform, "Arm_R");
+                if (modelArmL != null && modelArmR != null)
+                {
+                    // v2 FBX ships gloved hands posed on the grip and foregrip: they replace the provisional arms.
+                    Object.DestroyImmediate(armL.gameObject);
+                    Object.DestroyImmediate(armR.gameObject);
+                    wm.leftHand = modelArmL;
+                }
+                else
+                {
+                    // Hands onto the new grip (model origin) and the angled foregrip (Blender (0, 0.335, -0.01)).
+                    Vector3 newGrip = model.transform.TransformPoint(new Vector3(0f, -0.03f, -0.02f));
+                    Vector3 newFore = model.transform.TransformPoint(new Vector3(0f, -0.005f, 0.335f));
+                    armR.position += newGrip - gripPos;
+                    armL.position += newFore - leftHand;
+                }
 
                 PrefabUtility.SaveAsPrefabAsset(root, OutputPath);
             }

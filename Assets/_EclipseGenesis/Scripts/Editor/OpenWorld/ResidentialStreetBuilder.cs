@@ -62,11 +62,13 @@ namespace EclipseGenesis.EditorTools.OpenWorld
             BuildPowerLines(root);
             BuildProps(root);
             BuildBarricade(root);
+            BuildWarDetails(root);
             FacilitySceneBuilder.MarkStatic(root);
             BuildLighting(root);
             BuildNavigation();
             var player = SpawnPlayer();
             BuildMission(root, player);
+            SpawnStalkers(root);
             BuildQaMarkers();
             new GameObject("PerformanceLogger").AddComponent<PerformanceLogger>();
 
@@ -582,9 +584,13 @@ namespace EclipseGenesis.EditorTools.OpenWorld
         {
             var g = FacilityKit.Group(root, "StreetProps");
             string Env(string id) => ArtLibrary.PolyHaven("Environment", id);
-            // Vehicles: a tarp-covered car at the left curb and one in a right driveway.
-            ArtLibrary.Place(Env("covered_car"), g, new Vector3(-2.4f, 0.02f, -9f), 182f);
-            ArtLibrary.Place(Env("covered_car"), g, new Vector3(WalkOuter + 5.5f, 0f, -27.5f), 95f);
+            // Vehicles: burnt sedans at the curbs (concept art foreground), an abandoned one in a driveway, a covered one further on.
+            string V(string n) => ArtLibrary.Root + $"Vehicles/{n}.fbx";
+            ArtLibrary.Place(V("SM_Car_Sedan_Burnt"), g, new Vector3(-2.3f, 0.02f, -40f), 4f);
+            ArtLibrary.Place(V("SM_Car_Sedan_Burnt"), g, new Vector3(2.6f, 0.02f, 9f), 168f);
+            ArtLibrary.Place(V("SM_Car_Sedan_Abandoned"), g, new Vector3(WalkOuter + 5.5f, 0f, -27.5f), 95f);
+            ArtLibrary.Place(V("SM_Car_Sedan_Abandoned"), g, new Vector3(-2.4f, 0.02f, -9f), 182f);
+            ArtLibrary.Place(Env("covered_car"), g, new Vector3(-WalkOuter - 5.5f, 0f, 30.5f), 272f);
             ArtLibrary.Place(Env("rusted_wheel_rim_01"), g, new Vector3(-4.6f, 0.02f, -14f), 30f);
             ArtLibrary.Place(Env("old_tyre"), g, new Vector3(-4.4f, 0.32f, -13.2f), 80f);
             // Sidewalk furniture.
@@ -602,6 +608,116 @@ namespace EclipseGenesis.EditorTools.OpenWorld
                 ArtLibrary.Place(Env("Barrel_01"), g, new Vector3(R(-5f, 5f) > 0 ? R(4.6f, 5.4f) : R(-5.4f, -4.6f), 0.15f, R(-40f, 40f)), R(0f, 360f));
             for (int i = 0; i < 8; i++)
                 ArtLibrary.Place(Env("cardboard_box_01"), g, new Vector3(R(-6f, 6f), 0.02f, R(-45f, 45f)), R(0f, 360f));
+        }
+
+        /// <summary>
+        /// Signs of the invasion: debris and trash, military hardware, warning / street signs, grime, water streaks and
+        /// bullet holes on the facades, scorch marks.
+        /// </summary>
+        private static void BuildWarDetails(Transform root)
+        {
+            var g = FacilityKit.Group(root, "WarDetails");
+            string EP(string n) => ArtLibrary.Root + $"EnvironmentProps/{n}.fbx";
+            string MI(string n) => ArtLibrary.Root + $"Military/{n}.fbx";
+            // Debris along curbs, yards and in front of the damaged houses.
+            var debris = new[] { "SM_Debris_Bricks", "SM_Debris_Planks", "SM_Debris_Concrete", "SM_TrashBags" };
+            for (int i = 0; i < 22; i++)
+            {
+                float s = i % 2 == 0 ? -1f : 1f;
+                float x = s * (i % 3 == 0 ? R(RoadHalf - 1.2f, RoadHalf - 0.3f) : R(WalkOuter + 1f, FrontLine - 3.5f));
+                ArtLibrary.Place(EP(debris[_rng.Next(debris.Length)]), g, new Vector3(x, 0.02f, R(-60f, 50f)), R(0f, 360f), R(0.8f, 1.2f));
+            }
+            for (int i = 0; i < 4; i++)   // a few scattered sheets, not a carpet
+                ArtLibrary.Place(EP("SM_Debris_Paper"), g, new Vector3(R(-6f, 6f), 0.02f, R(-60f, 60f)), R(0f, 360f), 0.55f, colliders: false);
+            // Military: hesco + sandbags + wire at the checkpoint, sandbag nests on the street, ammo crates.
+            ArtLibrary.Place(MI("SM_Hesco"), g, new Vector3(-9.5f, 0f, 65f), 0f);
+            ArtLibrary.Place(MI("SM_Hesco"), g, new Vector3(9.5f, 0f, 65f), 0f);
+            ArtLibrary.Place(MI("SM_Concertina"), g, new Vector3(0f, 0.02f, 68f), 0f, 1f, colliders: false);
+            ArtLibrary.Place(MI("SM_Sandbag_Wall"), g, new Vector3(-3.5f, 0.02f, 61.5f), 0f);
+            ArtLibrary.Place(MI("SM_Sandbag_Wall"), g, new Vector3(3.6f, 0.02f, 61.8f), 180f);
+            ArtLibrary.Place(MI("SM_Sandbag_Wall"), g, new Vector3(1.8f, 0.02f, -18f), 75f);
+            ArtLibrary.Place(MI("SM_AmmoCrate"), g, new Vector3(-5.2f, 0.15f, 60f), 20f);
+            ArtLibrary.Place(MI("SM_AmmoCrate"), g, new Vector3(0.6f, 0.02f, -16.5f), -30f);
+            // Signs.
+            ArtLibrary.Place(EP("SM_Sign_Checkpoint"), g, new Vector3(-4.4f, 0.15f, 57f), 180f);
+            ArtLibrary.Place(EP("SM_Sign_Quarantine"), g, new Vector3(4.6f, 0.15f, 58f), 180f + 12f);
+            ArtLibrary.Place(EP("SM_Sign_Stop"), g, new Vector3(WalkOuter - 0.5f, 0.15f, 50.5f), 180f);
+            ArtLibrary.Place(EP("SM_Sign_Stop"), g, new Vector3(-WalkOuter + 0.5f, 0.15f, 61.5f), 0f);
+            ArtLibrary.Place(EP("SM_Sign_StreetName"), g, new Vector3(-WalkOuter + 0.6f, 0.15f, 50.8f), 90f);
+            foreach (var lot in new[] { Lots[0], Lots[3], Lots[9] })
+                ArtLibrary.Place(EP("SM_Sign_Evacuated"), g, new Vector3(Mathf.Sign(lot.X) * (WalkOuter + 1.2f), 0f, lot.Z - lot.Width * 0.5f - 1f), Mathf.Sign(lot.X) < 0 ? 90f + R(-10f, 10f) : -90f + R(-10f, 10f));
+
+            // Facade grime, water streaks and bullet holes; scorch on the road and on the most damaged houses.
+            var bullet = BulletHoleDecal();
+            foreach (var lot in Lots)
+            {
+                float s = Mathf.Sign(lot.X);
+                var n = new Vector3(-s, 0f, 0f);
+                float wx = s * (FrontLine + 0.02f);
+                for (float dz = -lot.Width * 0.4f; dz <= lot.Width * 0.4f; dz += 2.6f)
+                    _kit.Decal(g, _kit.M.DecalGrime, new Vector3(wx, 0.9f, lot.Z + dz), n, R(2.2f, 3f), R(0f, 360f));
+                if (_rng.NextDouble() < 0.6)
+                    _kit.Decal(g, _kit.M.DecalGrime, new Vector3(wx, R(3f, 4.5f), lot.Z + R(-3f, 3f)), n, R(1.5f, 2.2f), R(-10f, 10f));
+                if (_rng.NextDouble() < 0.55)
+                {
+                    float cz = lot.Z + R(-3f, 3f), cy = R(1.2f, 2.6f);
+                    for (int k = 0; k < 9; k++)
+                        _kit.Decal(g, bullet, new Vector3(wx, cy + R(-0.6f, 0.6f), cz + R(-0.9f, 0.9f)), n, R(0.1f, 0.18f), R(0f, 360f));
+                }
+                if (lot.Model == ArtLibrary.HouseD)
+                    _kit.Decal(g, _kit.M.DecalScorch, new Vector3(wx, 2.2f, lot.Z + R(-2f, 2f)), n, R(3f, 4f), R(0f, 360f));
+            }
+            for (int k = 0; k < 14; k++)   // bullet strafe across the checkpoint barriers and the road
+                _kit.Decal(g, bullet, new Vector3(R(-4f, 4f), 0.03f, R(55f, 63f)), Vector3.up, R(0.12f, 0.2f), R(0f, 360f));
+        }
+
+        /// <summary>Procedural bullet-hole decal: dark crater, chipped light ring and radial cracks.</summary>
+        private static Material BulletHoleDecal()
+        {
+            const string texPath = "Assets/_EclipseGenesis/Art/Generated/Textures/Decal_BulletHole.png";
+            const int S = 128;
+            var px = new Color32[S * S];
+            var rnd = new System.Random(5);
+            for (int y = 0; y < S; y++)
+            for (int x = 0; x < S; x++)
+            {
+                float dx = (x - 63.5f) / 63.5f, dy = (y - 63.5f) / 63.5f;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+                float ang = Mathf.Atan2(dy, dx);
+                float jag = 0.06f * Mathf.Sin(ang * 7f) + 0.04f * Mathf.Sin(ang * 13f + 1f);
+                float a = 0f; Color c = Color.black;
+                if (r < 0.16f + jag * 0.5f) { c = new Color(0.03f, 0.03f, 0.03f); a = 1f; }
+                else if (r < 0.42f + jag) { c = Color.Lerp(new Color(0.12f, 0.11f, 0.1f), new Color(0.55f, 0.52f, 0.48f), (r - 0.16f) / 0.3f); a = 1f - Mathf.Clamp01((r - 0.34f) / 0.12f); }
+                float crack = Mathf.Abs(Mathf.Sin(ang * 5f + 0.4f));
+                if (r < 0.85f && crack < 0.04f * (1f - r)) { c = new Color(0.08f, 0.08f, 0.08f); a = Mathf.Max(a, 0.8f * (1f - r)); }
+                px[y * S + x] = new Color32((byte)(c.r * 255), (byte)(c.g * 255), (byte)(c.b * 255), (byte)(a * 255));
+            }
+            var tex = new Texture2D(S, S, TextureFormat.RGBA32, false);
+            tex.SetPixels32(px);
+            FpsTestSceneBuilder.EnsureFolder(Path.GetDirectoryName(texPath));
+            File.WriteAllBytes(texPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceSynchronousImport);
+            var imp = (TextureImporter)AssetImporter.GetAtPath(texPath);
+            imp.alphaIsTransparency = true;
+            imp.wrapMode = TextureWrapMode.Clamp;
+            imp.SaveAndReimport();
+
+            string path = $"{PolyHavenLibrary.MaterialFolder}/M_EG_Decal_BulletHole.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null) { m = new Material(Shader.Find("HDRP/Decal")); AssetDatabase.CreateAsset(m, path); }
+            m.SetTexture("_BaseColorMap", AssetDatabase.LoadAssetAtPath<Texture2D>(texPath));
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_AffectAlbedo", 1f);
+            m.SetFloat("_AffectNormal", 0f);
+            m.SetFloat("_AffectMetal", 0f);
+            m.SetFloat("_AffectSmoothness", 0f);
+            m.SetFloat("_AffectAO", 0f);
+            m.SetFloat("_DecalBlend", 1f);
+            m.enableInstancing = true;
+            HDMaterial.ValidateMaterial(m);
+            EditorUtility.SetDirty(m);
+            return m;
         }
 
         private static void BuildBarricade(Transform root)
@@ -634,7 +750,7 @@ namespace EclipseGenesis.EditorTools.OpenWorld
             sun.AddHDLight(LightType.Directional);
             var light = sun.GetComponent<Light>();
             light.lightUnit = LightUnit.Lux;
-            light.intensity = 30000f;
+            light.intensity = 21000f;   // less glare around the low sun (was burning the frame)
             light.useColorTemperature = true;
             light.colorTemperature = 4600f;
             light.shadows = LightShadows.Soft;
@@ -665,29 +781,34 @@ namespace EclipseGenesis.EditorTools.OpenWorld
             exposure.mode.Override(ExposureMode.AutomaticHistogram);
             exposure.limitMin.Override(9f);
             exposure.limitMax.Override(13.5f);
-            exposure.compensation.Override(1.3f);   // backlit sunset: the histogram alone underexposes the street (verified with captures)
+            exposure.compensation.Override(0.95f);   // backlit sunset: the histogram alone underexposes the street (verified with captures)
             exposure.adaptationMode.Override(AdaptationMode.Fixed);   // converge immediately (progressive adaptation left captures and first frames dark)
 
             var fog = Add<Fog>();
             fog.enabled.Override(true);
             fog.enableVolumetricFog.Override(true);
-            fog.meanFreePath.Override(380f);
+            fog.meanFreePath.Override(520f);
             fog.baseHeight.Override(0f);
             fog.maximumHeight.Override(60f);
             fog.albedo.Override(new Color(0.86f, 0.89f, 0.93f));
-            fog.anisotropy.Override(0.65f);
+            fog.anisotropy.Override(0.42f);   // smaller forward-scatter halo around the sun
             fog.depthExtent.Override(90f);
 
             Add<Tonemapping>().mode.Override(TonemappingMode.ACES);
             var color = Add<ColorAdjustments>();
-            color.contrast.Override(8f);
-            color.saturation.Override(4f);
+            color.contrast.Override(16f);
+            color.saturation.Override(-4f);
+            var lgg = Add<LiftGammaGain>();   // tactical look: slightly cool, deeper shadows, controlled highlights
+            lgg.lift.Override(new Vector4(0.97f, 0.99f, 1.03f, -0.02f));
+            lgg.gain.Override(new Vector4(1.02f, 1.0f, 0.97f, -0.04f));
             Add<WhiteBalance>().temperature.Override(-10f);   // cool the sky and shadows; the sun stays warm
             var split = Add<SplitToning>();
             split.shadows.Override(new Color(0.42f, 0.5f, 0.62f));
             split.highlights.Override(new Color(0.56f, 0.53f, 0.49f));
             split.balance.Override(-20f);
-            Add<Bloom>().intensity.Override(0.15f);
+            var bloom = Add<Bloom>();
+            bloom.intensity.Override(0.06f);
+            bloom.threshold.Override(1.2f);
             var ao = Add<ScreenSpaceAmbientOcclusion>();
             ao.intensity.Override(0.9f);
             ao.radius.Override(1.4f);
@@ -756,6 +877,35 @@ namespace EclipseGenesis.EditorTools.OpenWorld
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>Two Stalkers (organic Blender model when available) prowling the street: by the checkpoint and between the houses.</summary>
+        private static void SpawnStalkers(Transform root)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EclipseGenesis.EditorTools.Combat.AlienBuilder.PrefabPath);
+            if (prefab == null) return;
+            var g = FacilityKit.Group(root, "Aliens");
+            var groups = new (Vector3 spawn, float yaw, Vector3[] route)[]
+            {
+                (new Vector3(2.5f, 0.02f, 36f), 190f, new[] { new Vector3(3f, 0f, 30f), new Vector3(-2f, 0f, 44f), new Vector3(6f, 0f, 50f) }),
+                (new Vector3(-9f, 0f, 3f), 150f, new[] { new Vector3(-9f, 0f, -2f), new Vector3(-24f, 0f, 4f), new Vector3(-10f, 0f, 18f) }),
+            };
+            for (int i = 0; i < groups.Length; i++)
+            {
+                var a = (GameObject)PrefabUtility.InstantiatePrefab(prefab, g);
+                a.name = $"EG_Alien_Stalker_{i + 1}";
+                a.transform.SetPositionAndRotation(groups[i].spawn, Quaternion.Euler(0f, groups[i].yaw, 0f));
+                var route = new GameObject($"PatrolRoute_{i + 1}").transform;
+                route.SetParent(g, false);
+                var pts = new Transform[groups[i].route.Length];
+                for (int k = 0; k < pts.Length; k++)
+                {
+                    pts[k] = new GameObject($"Point_{k + 1}").transform;
+                    pts[k].SetParent(route, false);
+                    pts[k].position = groups[i].route[k];
+                }
+                EclipseGenesis.EditorTools.Combat.ProtoKit.SetRefs(a.GetComponent<EclipseGenesis.AI.AlienBrain>(), "patrolPoints", pts);
+            }
+        }
+
         private static void BuildQaMarkers()
         {
             var root = new GameObject("QA").transform;
@@ -765,6 +915,7 @@ namespace EclipseGenesis.EditorTools.OpenWorld
             View("R3_HouseInterior", new Vector3(-15.5f, 2.13f, -21.5f), new Vector3(8f, -23f, 0f));
             View("R4_Porch", new Vector3(-6.5f, 1.85f, -28f), new Vector3(3f, -48f, 0f));
             View("R5_Checkpoint", new Vector3(0.5f, 1.68f, 40f), new Vector3(2f, 0f, 0f));
+            View("R7_Stalker", new Vector3(0.6f, 1.6f, 31.5f), new Vector3(8f, 22f, 0f));
             View("R6_Aerial", new Vector3(45f, 38f, -70f), new Vector3(28f, -30f, 0f));
         }
     }

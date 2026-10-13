@@ -351,6 +351,22 @@ namespace EclipseGenesis.EditorTools.Art
                 { "EG_GunAccent", (new Color(0.5f, 0.04f, 0.03f), 0.6f, 0.55f, 0f) },
                 { "EG_GunGlass", (new Color(0.35f, 0.5f, 0.45f, 0.18f), 0f, 0.95f, 0f) },
                 { "EG_GunReticle", (new Color(1f, 0.08f, 0.04f), 0f, 0.5f, 60f) },
+                { "EG_Glove", (new Color(0.075f, 0.075f, 0.07f), 0f, 0.22f, 0f) },
+                { "EG_Sleeve", (new Color(0.19f, 0.2f, 0.15f), 0f, 0.12f, 0f) },
+                { "EG_CarPaint", (new Color(0.2f, 0.27f, 0.33f), 0.35f, 0.42f, 0f) },
+                { "EG_Rubber", (new Color(0.03f, 0.03f, 0.03f), 0f, 0.25f, 0f) },
+                { "EG_Chrome", (new Color(0.55f, 0.55f, 0.56f), 1f, 0.6f, 0f) },
+                { "EG_CarInterior", (new Color(0.04f, 0.04f, 0.04f), 0f, 0.2f, 0f) },
+                { "EG_Taillight", (new Color(0.45f, 0.03f, 0.02f), 0f, 0.8f, 0f) },
+                { "EG_Headlight", (new Color(0.75f, 0.75f, 0.7f), 0.5f, 0.85f, 0f) },
+                { "EG_TrashBag", (new Color(0.025f, 0.025f, 0.03f), 0f, 0.7f, 0f) },
+                { "EG_Paper", (new Color(0.7f, 0.68f, 0.6f), 0f, 0.1f, 0f) },
+                { "EG_SignPost", (new Color(0.45f, 0.46f, 0.47f), 0.9f, 0.4f, 0f) },
+                { "EG_AlienSkin", (new Color(0.07f, 0.055f, 0.065f), 0.05f, 0.42f, 0f) },
+                { "EG_AlienPlate", (new Color(0.025f, 0.024f, 0.03f), 0.25f, 0.62f, 0f) },
+                { "EG_AlienClaw", (new Color(0.16f, 0.14f, 0.13f), 0f, 0.5f, 0f) },
+                { "EG_AlienGlow", (new Color(1f, 0.12f, 0.04f), 0f, 0.4f, 45f) },
+                { "EG_AlienEye", (new Color(1f, 0.15f, 0.05f), 0f, 0.9f, 500f) },
             };
 
         public static Material WeaponMaterial(string name)
@@ -370,12 +386,15 @@ namespace EclipseGenesis.EditorTools.Art
             mat.SetFloat("_Metallic", p.metal);
             mat.SetFloat("_Smoothness", p.smooth);
             // Fine machining / wear detail from the scanned metal plate normal map, tiled small.
-            var detailNormal = AssetDatabase.LoadAssetAtPath<Texture2D>($"{Root}Textures/metal_plate/metal_plate_nor_gl.jpg");
+            bool alien = name.StartsWith("EG_Alien");
+            var detailNormal = alien
+                ? AssetDatabase.LoadAssetAtPath<Texture2D>($"{Root}Environment/PolyHaven/boulder_01/textures/boulder_01_nor_gl_2k.exr")
+                : AssetDatabase.LoadAssetAtPath<Texture2D>($"{Root}Textures/metal_plate/metal_plate_nor_gl.jpg");
             if (!glass && name != "EG_GunReticle" && detailNormal != null)
             {
                 mat.SetTexture("_NormalMap", detailNormal);
-                mat.SetFloat("_NormalScale", 0.25f);
-                mat.SetTextureScale("_BaseColorMap", Vector2.one * 8f);
+                mat.SetFloat("_NormalScale", alien ? 1.2f : 0.25f);
+                mat.SetTextureScale("_BaseColorMap", Vector2.one * (alien ? 2.5f : 8f));
             }
             if (p.nits > 0f)
             {
@@ -383,6 +402,54 @@ namespace EclipseGenesis.EditorTools.Art
                 HDMaterial.SetEmissiveColor(mat, p.color);
                 HDMaterial.SetEmissiveIntensity(mat, p.nits, EmissiveIntensityUnit.Nits);
             }
+            HDMaterial.ValidateMaterial(mat);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>Library surfaces reused with their own tint (separate material so the base library material is untouched).</summary>
+        public static readonly Dictionary<string, (string id, Color tint, float smooth)> TintedLibrary = new Dictionary<string, (string, Color, float)>
+        {
+            { "EG_CarBurnt", ("rust_coarse_01", new Color(0.3f, 0.26f, 0.24f), 0.15f) },
+            { "EG_Sandbag", ("white_plaster_02", new Color(0.62f, 0.54f, 0.4f), 0.05f) },
+            { "EG_HescoFabric", ("white_plaster_02", new Color(0.55f, 0.5f, 0.4f), 0.05f) },
+            { "EG_CrateWood", ("weathered_plank_siding", new Color(0.42f, 0.48f, 0.3f), 0.2f) },
+            { "EG_Plank", ("weathered_plank_siding", new Color(0.85f, 0.8f, 0.72f), 0.15f) },
+        };
+
+        public static Material TintedMaterial(string name)
+        {
+            var (id, tint, smooth) = TintedLibrary[name];
+            string path = $"{MaterialFolder}/M_{name}.mat";
+            var src = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/M_PH_{id}.mat") ?? LibraryMaterial(id);
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(src);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            else mat.CopyPropertiesFromMaterial(src);
+            mat.SetColor("_BaseColor", tint);
+            mat.SetFloat("_SmoothnessRemapMax", smooth);
+            HDMaterial.ValidateMaterial(mat);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>EG_TEX_&lt;name&gt;: base colour from Art/Imported/EnvironmentProps/Textures/&lt;name&gt;.png (signs rendered in Blender).</summary>
+        public static Material TextureMaterial(string texName)
+        {
+            string path = $"{MaterialFolder}/M_TEX_{texName}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(Shader.Find("HDRP/Lit"));
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.SetTexture("_BaseColorMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{Root}EnvironmentProps/Textures/{texName}.png"));
+            mat.SetColor("_BaseColor", new Color(0.85f, 0.85f, 0.83f));   // aged, slightly dirty paint
+            mat.SetFloat("_Smoothness", 0.35f);
+            mat.SetFloat("_Metallic", 0f);
             HDMaterial.ValidateMaterial(mat);
             EditorUtility.SetDirty(mat);
             return mat;
@@ -425,6 +492,10 @@ namespace EclipseGenesis.EditorTools.Art
                 Material mat;
                 if (src == "EG_Glass")
                     mat = GlassMaterial();
+                else if (src.StartsWith("EG_TEX_"))
+                    mat = TextureMaterial(src.Substring(7));
+                else if (TintedLibrary.ContainsKey(src))
+                    mat = TintedMaterial(src);
                 else if (WeaponPaints.ContainsKey(src))
                     mat = WeaponMaterial(src);
                 else if (src.StartsWith("EG_PH_"))   // optimised copies of Poly Haven scans keep their surface material

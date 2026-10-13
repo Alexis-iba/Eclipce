@@ -167,7 +167,7 @@ namespace EclipseGenesis.EditorTools.Combat
                 data.displayName = "EG-47";
                 data.description = "Rifle de asalto GENESIS";
                 data.viewModelPrefab = prefab;
-                data.fireClip = ProceduralAudioClips.RifleShot();
+                data.fireClip = ProceduralAudioClips.RifleShotV2();
                 data.reloadClip = ProceduralAudioClips.RifleReload();
                 data.dryFireClip = ProceduralAudioClips.DryFire();
                 EditorUtility.SetDirty(data);

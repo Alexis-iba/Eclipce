@@ -79,3 +79,16 @@ Los binarios no están en Git.
 | Media | Envejecimiento de las casas | Suciedad, manchas y daños | Decals de suciedad y fuga de agua; texturas de suciedad CC0 (requiere autorización) |
 | Media | Escombros y basura en el suelo | Papeles, ramas, tablas | Modelado en Blender o CC0 |
 | Media | Colinas: textura de hierba más verde en la distancia | — | Ajuste de capas del terreno (sin descarga) |
+
+## Tras el pulido táctico (2026-10-13)
+Hechos en Blender (ya no son placeholders de primitivas):
+- EG-47 v2 con guantes;
+- Stalker orgánico con rig;
+- sedanes quemado y abandonado;
+- escombros, kit militar y señales.
+
+Siguen pendientes, y conviene hacerlos con IA 3D (la clave de Hyper3D o Hunyuan3D la tienes que poner tú en Blender: barra N → BlenderMCP):
+- brazos FPS anatómicos con mangas texturizadas;
+- Stalker de calidad de concept, con más detalle, y los modelos de Ravager y Spitter;
+- vehículos más detallados;
+- VFX de fuego y humo (VFX Graph no está instalado).

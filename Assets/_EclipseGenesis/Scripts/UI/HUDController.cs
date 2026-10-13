@@ -33,7 +33,7 @@ namespace EclipseGenesis.UI
 
         private static readonly Color Amber = new Color(1f, 0.72f, 0.2f, 1f);
         private static readonly Color Dim = new Color(0.55f, 0.58f, 0.62f, 0.55f);
-        private const float RadarSize = 210f;
+        private const float RadarSize = 176f;
         private const float RadarRange = 60f;
         private const int ShieldPlates = 3;
         private const int MaxObjectiveRows = 4;
@@ -184,22 +184,22 @@ namespace EclipseGenesis.UI
         private void BuildVitals()
         {
             // Bottom-left: segmented armour plates (shield) over a health bar.
-            var vitals = Box(_root, "Vitals", new Vector2(0, 0), new Vector2(40, 40), new Vector2(430, 92));
+            var vitals = Box(_root, "Vitals", new Vector2(0, 0), new Vector2(32, 32), new Vector2(340, 84));
             Img(vitals, "Accent", Blue, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0));
             Label(vitals, "ESCUDO", 14, Grey, new Vector2(18, -10), new Vector2(120, 20), TextAnchor.UpperLeft);
             _shieldText = Label(vitals, "100", 16, Blue, new Vector2(-18, -9), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
-            float plateW = (394f - (ShieldPlates - 1) * 6f) / ShieldPlates;
+            float plateW = (304f - (ShieldPlates - 1) * 5f) / ShieldPlates;
             for (int i = 0; i < ShieldPlates; i++)
-                _shieldPlates[i] = Bar(vitals, new Vector2(18 + i * (plateW + 6f), -32), new Vector2(plateW, 10), Blue);
+                _shieldPlates[i] = Bar(vitals, new Vector2(18 + i * (plateW + 5f), -30), new Vector2(plateW, 8), Blue);
             Label(vitals, "SALUD", 14, Grey, new Vector2(18, -48), new Vector2(120, 20), TextAnchor.UpperLeft);
             _healthText = Label(vitals, "100", 16, White, new Vector2(-18, -47), new Vector2(80, 20), TextAnchor.UpperRight, rightAlign: true);
-            _healthFill = Bar(vitals, new Vector2(18, -70), new Vector2(394, 12), White);
+            _healthFill = Bar(vitals, new Vector2(18, -64), new Vector2(304, 10), White);
         }
 
         private void BuildWeaponCard()
         {
             // Bottom-right: weapon silhouette, name, fire mode, magazine / reserve, reload bar and grenade slots.
-            var card = Box(_root, "Weapon", new Vector2(1, 0), new Vector2(-40, 40), new Vector2(430, 132));
+            var card = Box(_root, "Weapon", new Vector2(1, 0), new Vector2(-32, 32), new Vector2(390, 122));
             Img(card, "Accent", Blue, new Vector2(1, 0), new Vector2(1, 1), new Vector2(-3, 0), new Vector2(3, 0));
             var icon = new GameObject("WeaponIcon", typeof(RectTransform)).GetComponent<RectTransform>();
             icon.SetParent(card, false);
@@ -210,7 +210,7 @@ namespace EclipseGenesis.UI
             _reserve = Label(card, "/ 120", 22, Grey, new Vector2(-20, -66), new Vector2(110, 30), TextAnchor.UpperRight, rightAlign: true);
             _ammo = Label(card, "30", 50, White, new Vector2(-112, -50), new Vector2(110, 56), TextAnchor.UpperRight, rightAlign: true);
             _reloadLabel = Label(card, "", 13, Blue, new Vector2(140, -88), new Vector2(150, 20), TextAnchor.UpperLeft);
-            _reloadFill = Bar(card, new Vector2(16, -114), new Vector2(398, 4), Blue);
+            _reloadFill = Bar(card, new Vector2(16, -108), new Vector2(358, 3), Blue);
 
             // Grenade slots (lethal / tactical) under the weapon icon. Visual only until the grenade system exists (see ROADMAP).
             for (int i = 0; i < 2; i++)
@@ -253,7 +253,7 @@ namespace EclipseGenesis.UI
             // Top-left: heading-up radar with rotating cardinal letters, objective marker and nearby alien blips.
             var frame = new GameObject("Radar", typeof(RectTransform)).GetComponent<RectTransform>();
             frame.SetParent(_root, false);
-            Anchor(frame, new Vector2(0, 1), new Vector2(40, -40), new Vector2(RadarSize, RadarSize));
+            Anchor(frame, new Vector2(0, 1), new Vector2(32, -32), new Vector2(RadarSize, RadarSize));
             var disk = Sprite.Create(CircleTexture(0f), new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f));
             var ring = Sprite.Create(CircleTexture(0.94f), new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f));
             var bg = Img(frame, "Disk", new Color(0.02f, 0.03f, 0.035f, 0.72f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -295,12 +295,12 @@ namespace EclipseGenesis.UI
         private void BuildObjectivePanel()
         {
             // Right of the radar: operation name and the full objective checklist.
-            _objectivePanel = Box(_root, "Objective", new Vector2(0, 1), new Vector2(40 + RadarSize + 16, -40), new Vector2(430, 64));
+            _objectivePanel = Box(_root, "Objective", new Vector2(0, 1), new Vector2(32 + RadarSize + 14, -32), new Vector2(350, 60));
             Img(_objectivePanel, "Accent", Blue, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(3, 0));
-            _missionTitle = Label(_objectivePanel, MissionManager.MissionName, 16, Blue, new Vector2(18, -12), new Vector2(400, 22), TextAnchor.UpperLeft);
+            _missionTitle = Label(_objectivePanel, MissionManager.MissionName, 13, Blue, new Vector2(16, -10), new Vector2(330, 20), TextAnchor.UpperLeft);
             _objectiveList = new GameObject("List", typeof(RectTransform)).GetComponent<RectTransform>();
             _objectiveList.SetParent(_objectivePanel, false);
-            Anchor(_objectiveList, new Vector2(0, 1), new Vector2(0, -40), new Vector2(430, 0));
+            Anchor(_objectiveList, new Vector2(0, 1), new Vector2(0, -34), new Vector2(350, 0));
         }
 
         private void RefreshObjectiveList(int index, string currentText)
@@ -315,8 +315,8 @@ namespace EclipseGenesis.UI
                 foreach (var row in _objectiveRows) if (row != null) Destroy(row.gameObject);
                 _objectiveRows = new Text[rows];
                 for (int i = 0; i < rows; i++)
-                    _objectiveRows[i] = Label(_objectiveList, "", 17, Grey, new Vector2(18, -i * 26), new Vector2(400, 24), TextAnchor.UpperLeft);
-                _objectivePanel.sizeDelta = new Vector2(_objectivePanel.sizeDelta.x, 48 + rows * 26);
+                    _objectiveRows[i] = Label(_objectiveList, "", 15, Grey, new Vector2(16, -i * 22), new Vector2(330, 22), TextAnchor.UpperLeft);
+                _objectivePanel.sizeDelta = new Vector2(_objectivePanel.sizeDelta.x, 42 + rows * 22);
             }
             bool finished = m.State != MissionState.InProgress;
             int first = Mathf.Clamp(index - 1, 0, all.Count - rows);
