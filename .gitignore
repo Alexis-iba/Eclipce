@@ -40,3 +40,6 @@ Thumbs.db
 # Blender autosave/backup files
 *.blend1
 *.blend2
+
+# Archivos >100 MB (limite de GitHub)
+/Assets/_EclipseGenesis/Art/Imported/Vegetation/PolyHaven/fir_tree_01/fir_tree_01.fbx

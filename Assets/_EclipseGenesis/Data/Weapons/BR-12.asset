@@ -14,22 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Weapons.WeaponData
   id: BR-12
   displayName: BR-12
-  description: "Preparaci\xF3n: falta modelo, audio y balance final"
-  viewModelPrefab: {fileID: 0}
-  damage: 12
-  effectiveRange: 12
-  maxRange: 200
+  description: Escopeta
+  viewModelPrefab: {fileID: 1847883654481159464, guid: 6e56ad5aa94f38748a27d66a9b7be487, type: 3}
+  damage: 10
+  effectiveRange: 16
+  maxRange: 65
   minDamageFactor: 0.6
   headshotMultiplier: 2
   roundsPerMinute: 90
   automatic: 0
   pellets: 8
   magazineSize: 8
-  reserveAmmo: 120
-  reloadTime: 2.3
+  reserveAmmo: 40
+  reloadTime: 3.4
   emptyReloadExtra: 0.4
-  hipSpread: 2.2
-  adsSpread: 0.25
+  hipSpread: 4.2
+  adsSpread: 2.2
   movingSpreadAdd: 1.6
   spreadPerShot: 0.35
   maxShotSpread: 2.5

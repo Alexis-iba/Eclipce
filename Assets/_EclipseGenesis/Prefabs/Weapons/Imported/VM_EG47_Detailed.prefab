@@ -1117,6 +1117,7 @@ GameObject:
   - component: {fileID: 6571899681978120743}
   - component: {fileID: 8706341723195080792}
   - component: {fileID: 3703279670229695156}
+  - component: {fileID: 511511072415805253}
   m_Layer: 0
   m_Name: VM_EG47_Detailed
   m_TagString: Untagged
@@ -1181,3 +1182,15 @@ MonoBehaviour:
   kickPitch: 3.2
   springStiffness: 260
   springDamping: 22
+--- !u!114 &511511072415805253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9124205080878250754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22df7268f24c02d458016bfa21ecdc71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Combat.ViewmodelSurfaceLight

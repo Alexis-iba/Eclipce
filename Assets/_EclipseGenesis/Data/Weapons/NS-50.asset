@@ -14,22 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Weapons.WeaponData
   id: NS-50
   displayName: NS-50
-  description: "Preparaci\xF3n: falta modelo, audio y balance final"
-  viewModelPrefab: {fileID: 0}
-  damage: 95
-  effectiveRange: 120
-  maxRange: 200
+  description: "Rifle de precisi\xF3n"
+  viewModelPrefab: {fileID: 1397473773973972928, guid: 258a3917e8780284da5d98ae1324d1a2, type: 3}
+  damage: 92
+  effectiveRange: 150
+  maxRange: 400
   minDamageFactor: 0.6
   headshotMultiplier: 2
   roundsPerMinute: 55
   automatic: 0
   pellets: 1
   magazineSize: 5
-  reserveAmmo: 120
-  reloadTime: 2.3
+  reserveAmmo: 30
+  reloadTime: 3.1
   emptyReloadExtra: 0.4
-  hipSpread: 2.2
-  adsSpread: 0.25
+  hipSpread: 4
+  adsSpread: 0.035
   movingSpreadAdd: 1.6
   spreadPerShot: 0.35
   maxShotSpread: 2.5
@@ -40,7 +40,7 @@ MonoBehaviour:
   recoilRecoverySpeed: 9
   adsRecoilMultiplier: 0.7
   adsTime: 0.22
-  adsFovMultiplier: 0.78
+  adsFovMultiplier: 0.4
   adsSensitivity: 0.75
   sprintToFireTime: 0.12
   equipTime: 0.45

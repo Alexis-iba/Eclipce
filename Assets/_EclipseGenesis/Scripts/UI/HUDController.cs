@@ -258,6 +258,12 @@ namespace EclipseGenesis.UI
             var ring = Sprite.Create(CircleTexture(0.94f), new Rect(0, 0, 128, 128), new Vector2(0.5f, 0.5f));
             var bg = Img(frame, "Disk", new Color(0.02f, 0.03f, 0.035f, 0.72f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             bg.sprite = disk;
+            var mapObject = new GameObject("MapFootprints", typeof(RectTransform), typeof(RawImage));
+            mapObject.transform.SetParent(frame, false);
+            var mapRect = mapObject.GetComponent<RectTransform>();
+            mapRect.anchorMin = Vector2.zero; mapRect.anchorMax = Vector2.one;
+            mapRect.offsetMin = mapRect.offsetMax = Vector2.zero;
+            mapObject.AddComponent<RadarWorldMap>().Initialize(viewCamera);
             var outer = Img(frame, "Ring", new Color(Blue.r, Blue.g, Blue.b, 0.8f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             outer.sprite = ring;
             var inner = Img(frame, "RingInner", new Color(1f, 1f, 1f, 0.12f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(RadarSize * 0.5f, RadarSize * 0.5f));
@@ -681,3 +687,4 @@ namespace EclipseGenesis.UI
         }
     }
 }
+

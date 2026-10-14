@@ -14,22 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: EclipseGenesis.Runtime::EclipseGenesis.Weapons.WeaponData
   id: PLASMA-X
   displayName: PLASMA-X
-  description: "Preparaci\xF3n: falta modelo, audio y balance final"
-  viewModelPrefab: {fileID: 0}
-  damage: 40
-  effectiveRange: 40
-  maxRange: 200
+  description: "Arma alien\xEDgena"
+  viewModelPrefab: {fileID: 6113048853485103498, guid: 56e41e3444c373a4f8158718dd668a92, type: 3}
+  damage: 38
+  effectiveRange: 60
+  maxRange: 180
   minDamageFactor: 0.6
   headshotMultiplier: 2
-  roundsPerMinute: 300
+  roundsPerMinute: 320
   automatic: 1
   pellets: 1
   magazineSize: 24
-  reserveAmmo: 120
-  reloadTime: 2.3
+  reserveAmmo: 96
+  reloadTime: 2.1
   emptyReloadExtra: 0.4
-  hipSpread: 2.2
-  adsSpread: 0.25
+  hipSpread: 2.1
+  adsSpread: 0.2
   movingSpreadAdd: 1.6
   spreadPerShot: 0.35
   maxShotSpread: 2.5
